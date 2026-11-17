@@ -1,6 +1,6 @@
 # Chromatin accessibility QTL mapping with SAIGE-QTL: usage
 
-The same scripts used for single-cell eQTLs map caQTLs from single-cell or single-nucleus ATAC-seq and 10x Multiome data. Each peak is one phenotype, and each peak's cis window is the region tested. [caQTL_methods.md](caQTL_methods.md) gives the model, the reasons for the settings below and the calibration results. Everything here was checked at commit `d89c238a`.
+The same scripts used for single-cell eQTLs map caQTLs from single-cell or single-nucleus ATAC-seq and 10x Multiome data. Each peak is one phenotype, and each peak's cis window is the region tested. [caQTL_methods.md](caQTL_methods.md) gives the model, the reasons for the settings below and the calibration results. Everything here was checked at commit `d89c238a` with the `--tauFloor` option (PR #TBD) added.
 
 ## Inputs
 
@@ -23,7 +23,7 @@ Rules for the columns:
 
 **Peak windows.** One file per peak with three tab-separated columns and no header: chromosome, start, end. Coordinates are inclusive. The chromosome must be written exactly as in the step 2 `.bim`, or step 2 stops with an error. We use the peak ± 10 kb.
 
-**Peak filter.** Peaks with few donors having nonzero counts carry little information and often fail step 1 (methods, Table 3). Dropping them first saves compute; calibration does not require it.
+**Peak filter.** Peaks with few donors having nonzero counts carry little information. Dropping them first saves compute; calibration does not require it.
 
 ## Step 1: fit the null model (one run per peak)
 
@@ -37,7 +37,7 @@ Rscript extdata/step1_fitNULLGLMM_qtl.R \
   --sampleCovarColList=sex,age,gPC1,gPC2,aPC1,aPC2 \
   --useGRMtoFitNULL=FALSE --useSparseGRMtoFitNULL=FALSE \
   --isCovariateOffset=FALSE --isCovariateTransform=TRUE --isRemoveZerosinPheno=FALSE \
-  --tol=0.00001 \
+  --tol=0.001 --tauFloor=0.000001 \
   --plinkFile=vr_markers \
   --IsOverwriteVarianceRatioFile=TRUE \
   --outputPrefix=out/chr1_100600_101100
@@ -47,7 +47,9 @@ Notes on these flags:
 - `--traitType=count` is required. The default is `binary`, which fails on counts.
 - List donor covariates first in `--covarColList` and repeat them in `--sampleCovarColList`. Step 1 fails without `--sampleCovarColList`. With `--isCovariateTransform=TRUE`, a cell covariate listed before the donor covariates corrupts the donor-level design that step 2 uses.
 - Do not use `--qCovarColList` for donor covariates. Covariates declared there are silently dropped from the step 2 donor-level design; use 0/1 columns instead.
-- `--tol=0.00001` is needed because `--tol` is also a floor on the donor variance. The default 0.02, and even 1e-3, sets small donor variances to zero, which inflates the tests for well-covered peaks. The value 1e-5 was validated for donors with up to about 800 expected counts per peak.
+- `--tol` is the convergence threshold, and `--tauFloor` is the level below which the donor variance is set to 0.
+  - Without `--tauFloor`, the floor equals `--tol`. The default 0.02, and even 1e-3, then sets small donor variances to zero, which inflates the tests for well-covered peaks.
+  - With a version that lacks `--tauFloor`, use `--tol=0.00001` instead. It was validated for donors with up to about 800 expected counts per peak, but more sparse peaks then fall back or fail (methods).
 - `--useGRMtoFitNULL` defaults to `TRUE`, so set it to `FALSE` explicitly. For related donors, add a sparse GRM (`--useSparseGRMtoFitNULL=TRUE` with `--sparseGRMFile` and `--sparseGRMSampleIDFile`).
 
 **Check the outcome.** The script exits with status 0 even when the fit failed. The outcome is the line `Convergence Status: SUCCESS` or `FAILED` in `<outputPrefix>.status.txt`. If the full model fails or does not converge, the script refits with the covariates moved into the offset. Its log then contains `Retrying with all covariates as offset` or `Trying with all covariates as offset`. Record this flag and report calibration and results separately for such peaks.
@@ -98,9 +100,10 @@ This gives the ACAT p-value over the window, which is the same as `SAIGEQTL::get
 | Categorical covariate in `--qCovarColList` | Step 1 runs, but the covariate is missing from the step 2 donor-level design |
 | Cell covariate listed before donor covariates (`--isCovariateTransform=TRUE`) | Step 1 runs, but the step 2 donor-level design is wrong |
 | Peak name with `:` or `-` | Step 1 fails: `object 'chr1' not found` |
-| All-zero peak | Step 1 reports `SUCCESS` with variance 0 |
-| `--tol=0.02` (default) | Donor variances below 0.02 are set to 0 |
+| All-zero peak | Step 1 reports `SUCCESS`, with the donor variance at its floor (1e-6 with `--tauFloor=1e-6`) |
+| `--tol=0.02` (default) without `--tauFloor` | Donor variances below 0.02 are set to 0 |
 | `chr1`-style codes in the step 1 `--plinkFile` | Step 1 fails: `chromosome column in plink bim file is no numeric` |
 | Step 2 `--chrom` differs from the `.bim` code | Step 2 stops with an error and writes only the header |
+| Sparse peak whose counts all fall in some levels of a 0/1 donor covariate, such as batch | Step 1 reports `SUCCESS`, but the fit diverges: in a 12-count simulated peak the fitted values summed to 1.6e17. Step 2 then gives p = 0 for every variant. Check that the fitted values sum to the observed counts. |
 
 In every step 1 failure above, the script still exits with status 0.

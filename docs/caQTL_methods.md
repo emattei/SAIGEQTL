@@ -2,7 +2,7 @@
 
 Notation follows the Methods of the SAIGE-QTL preprint (Zhou et al., medRxiv 2024, v1). Code references are to commit `d89c238a`. Usage is described in [caQTL_usage.md](caQTL_usage.md).
 
-SAIGE-QTL tests variants for association with a per-cell count, modelling cells nested within donors, without pseudobulking. Steps 1–3 make no assumption that the count belongs to a gene, so a peak count can be the phenotype and a window around the peak the cis region. No code changes are needed. This document states the model for accessibility counts, what each step computes for a peak, and when the tests are calibrated.
+SAIGE-QTL tests variants for association with a per-cell count, modelling cells nested within donors, without pseudobulking. Steps 1–3 make no assumption that the count belongs to a gene, so a peak count can be the phenotype and a window around the peak the cis region. Apart from the `--tauFloor` option (Step 1), no code changes are needed. This document states the model for accessibility counts, what each step computes for a peak, and when the tests are calibrated.
 
 ## Quantifying chromatin accessibility in single cells
 
@@ -60,29 +60,35 @@ so each product with $\Sigma^{-1}$ costs $O(N)$ (`src/Main.cpp:4629-4758`). With
 
 $$\max_k \frac{|\tau_k - \tau_k^{\mathrm{old}}|}{|\tau_k| + |\tau_k^{\mathrm{old}}| + \epsilon} < \epsilon$$
 
-(`R/SAIGE_fitGLMM_fast_multiV.R:2454`). The same $\epsilon$ is also a floor on the variance component:
-- after every update, any $\tau_k < \epsilon$ is set to 0 (`src/Main.cpp:4940-4961`);
-- an iteration that sets $\tau_I = 0$ ends the fit with $\hat\tau_I = 0$ (`R/SAIGE_fitGLMM_fast_multiV.R:2450`).
+(`R/SAIGE_fitGLMM_fast_multiV.R:2454`). A second threshold, $\epsilon_f$, is a floor on the variance component. It equals $\epsilon$ unless `--tauFloor` is set; that option was added after this commit (PR #TBD).
+- After every update, any $\tau_k < \epsilon_f$ is set to 0 (`src/Main.cpp:4940-4961`).
+- An iteration that sets $\tau_I = 0$ ends the fit with $\hat\tau_I = 0$ (`R/SAIGE_fitGLMM_fast_multiV.R:2450`).
 
-The floor therefore applies to intermediate iterates as well as to the final estimate. In the two-component model, step-halving also keeps $\tau_I$ inside $(10^{-6}, 1 - 10^{-6})$ (`src/Main.cpp:4948-4958`), so the attainable range of $\hat\tau_I$ is $\lbrace 0\rbrace \cup [\epsilon, 1)$.
+The floor therefore applies to intermediate iterates as well as to the final estimate. In the two-component model, step-halving also keeps $\tau_I$ inside $(10^{-6}, 1 - 10^{-6})$ (`src/Main.cpp:4948-4958`). So $\hat\tau_I$ lies in $\lbrace 0\rbrace \cup [\epsilon_f, 1)$ when $\epsilon_f > 10^{-6}$, and in $[10^{-6}, 1)$ otherwise.
 
-**Why the floor matters for accessibility.** Under the model, the donor sum of residuals $r_i = \sum_j(y_{ij} - \mu_{ij})$ has variance of about $\mu_{i\cdot}(1 + \tau_I\mu_{i\cdot})$. If $\hat\tau_I = 0$ while $\tau_I > 0$, the step 2 variance below drops the factor $1 + \tau_I\mu_{i\cdot}$, and the test statistic is inflated by about that factor. Deep donors (many cells, accessible peaks) can have large $\mu_{i\cdot}$, so even a small $\tau_I$ matters. $\epsilon$ must therefore satisfy $\epsilon\max_i\hat\mu_{i\cdot} \ll 1$, and the default `--tol=0.02` violates it once donors have more than a few expected counts ($\epsilon\mu_{i\cdot} = 0.2$ at $\mu_{i\cdot} = 10$). The condition is necessary but not sufficient: because the floor acts on the iterates, it can zero a true $\tau_I$ several times larger than $\epsilon$. Results from the deep-donor simulation ($\mu_{i\cdot} \approx 810$; 20 peaks per row, one genotype permutation):
+**Why the floor matters for accessibility.** Under the model, the donor sum of residuals $r_i = \sum_j(y_{ij} - \mu_{ij})$ has variance of about $\mu_{i\cdot}(1 + \tau_I\mu_{i\cdot})$. If $\hat\tau_I = 0$ while $\tau_I > 0$, the step 2 variance below drops the factor $1 + \tau_I\mu_{i\cdot}$, and the test statistic is inflated by about that factor. Deep donors (many cells, accessible peaks) can have large $\mu_{i\cdot}$, so even a small $\tau_I$ matters. $\epsilon_f$ must therefore satisfy $\epsilon_f\max_i\hat\mu_{i\cdot} \ll 1$. The default ($\epsilon_f$ = `--tol` = 0.02) violates it once donors have more than a few expected counts ($\epsilon_f\mu_{i\cdot} = 0.2$ at $\mu_{i\cdot} = 10$). The condition is necessary but not sufficient: because the floor acts on the iterates, it can zero a true $\tau_I$ several times larger than $\epsilon_f$. Results from the deep-donor simulation ($\mu_{i\cdot} \approx 810$; 20 peaks per row, one genotype permutation):
 
-| True $\tau_I$ | $\epsilon$ | Peaks with $\hat\tau_I = 0$ | $\lambda_{GC}$ | Type I error, $\alpha = 10^{-3}$ |
-|---|---|---|---|---|
-| $5\times10^{-4}$ | $10^{-3}$ | 20/20 | 1.41 | 0.0047 |
-| $5\times10^{-4}$ | $10^{-4}$ | 6/20 | 1.11 | 0.0016 |
-| $5\times10^{-4}$ | $10^{-5}$ | 0/20 | 1.05 | 0.00092 |
-| $2\times10^{-3}$ | $10^{-3}$ | 10/20 | 1.58 | 0.019 |
-| $2\times10^{-3}$ | $10^{-4}$ or $10^{-5}$ | 0/20 | 1.06 | 0.00083 |
+| True $\tau_I$ | `--tol` | `--tauFloor` | Peaks with $\hat\tau_I = 0$ | $\lambda_{GC}$ | Type I error, $\alpha = 10^{-3}$ |
+|---|---|---|---|---|---|
+| $5\times10^{-4}$ | $10^{-3}$ | not set | 20/20 | 1.41 | 0.0047 |
+| $5\times10^{-4}$ | $10^{-4}$ | not set | 6/20 | 1.11 | 0.0016 |
+| $5\times10^{-4}$ | $10^{-5}$ | not set | 0/20 | 1.05 | 0.00092 |
+| $5\times10^{-4}$ | $10^{-3}$ | $10^{-6}$ | 0/20 | 1.05 | 0.00092 |
+| $2\times10^{-3}$ | $10^{-3}$ | not set | 10/20 | 1.58 | 0.019 |
+| $2\times10^{-3}$ | $10^{-4}$ or $10^{-5}$ | not set | 0/20 | 1.06 | 0.00083 |
+| $2\times10^{-3}$ | $10^{-3}$ | $10^{-6}$ | 0/20 | 1.06 | 0.00083 |
 
-- With $\epsilon = 10^{-3}$ and $\tau_I = 5\times10^{-4}$, $\lambda_{GC} = 1.41$ matches the predicted $1 + \tau_I\mu_{i\cdot} = 1.40$.
-- $\epsilon = 10^{-4}$ still zeroed peaks whose true $\tau_I$ is five times larger.
-- $\epsilon = 10^{-6}$ gave the same results as $10^{-5}$.
+- With `--tol=1e-3` alone and $\tau_I = 5\times10^{-4}$, $\lambda_{GC} = 1.41$ matches the predicted $1 + \tau_I\mu_{i\cdot} = 1.40$.
+- `--tol=1e-4` still zeroed peaks whose true $\tau_I$ is five times larger.
+- `--tol=1e-6` gave the same results as `--tol=1e-5`.
 
-We use $\epsilon = 10^{-5}$, the value in the package's regression tests. It is validated up to $\mu_{i\cdot} \approx 810$; donors with larger expected counts may need a smaller $\epsilon$. The cost is convergence: the relative criterion at $10^{-5}$ is not always met. In the main simulation, 159 of 2,400 peaks (6.6%) failed the full model; the fallback below refitted 98 of them and 61 failed (Tables 1–3).
+We use `--tol=1e-3` with `--tauFloor=1e-6`.
+- In the two-component model this floor never sets $\tau_I$ to 0, because the clamp above keeps it at or above $10^{-6}$. A floor of $10^{-6}$ changes $1 + \tau_I\mu_{i\cdot}$ by at most 0.01 for $\mu_{i\cdot} \le 10^4$. None of the 2,440 simulated fits below had $\hat\tau_I = 0$.
+- The looser convergence threshold is met for sparse peaks: all 2,400 peaks of the main simulation converged, one through the fallback below.
+- The cost is precision in $\hat\tau_I$. Compared with `--tol=1e-5` fits of the same peaks, 98% of estimates agreed within 1%. The largest difference, 16% on one peak, came from a fit that stopped after two iterations, while the first AI-REML steps were still small and $\hat\tau_I$ was near its starting value of 0.1. Use a smaller `--tol` when $\hat\tau_I$ itself is of interest. With `--tol=1e-4 --tauFloor=1e-6`, 99% of estimates agreed with the `--tol=1e-5` fits within 0.4% (largest difference 3.5%). Calibration was unchanged, but 30 of the 2,400 peaks fell back and 9 failed.
+- Without `--tauFloor`, a safe floor needs `--tol=1e-5`, the value in the package's regression tests, validated up to $\mu_{i\cdot} \approx 810$. That convergence threshold is often not met. In the same simulation, 159 of the 2,400 peaks (6.6%) failed the full model, at rates up to 43% in peaks with fewer than 30 donors having nonzero counts. The fallback refitted 98 of them and 61 failed. Calibration of the converged peaks was otherwise the same ($\lambda_{GC}$ 0.94–1.05).
 
-**Fallback.** If the fit fails or does not converge with `--isCovariateOffset=FALSE`, the step 1 script refits with `--isCovariateOffset=TRUE` (`extdata/step1_fitNULLGLMM_qtl.R:544-603`). The covariate effects are then fixed at their Poisson GLM estimates, fitted without the random effect, and moved into the offset; only the intercept and $\tau$ are estimated (`R/SAIGE_fitGLMM_fast_multiV.R:822-830`). Results from such peaks are reported separately below.
+**Fallback.** If the fit fails or does not converge with `--isCovariateOffset=FALSE`, the step 1 script refits with `--isCovariateOffset=TRUE` (`extdata/step1_fitNULLGLMM_qtl.R:544-603`). The covariate effects are then fixed at their Poisson GLM estimates, fitted without the random effect, and moved into the offset; only the intercept and $\tau$ are estimated (`R/SAIGE_fitGLMM_fast_multiV.R:822-830`).
 
 ## Estimating the variance ratios
 
@@ -100,7 +106,7 @@ Without a GRM, $Z^\top\hat\Sigma^{-1}Z$ is diagonal:
 
 $$\left(Z^\top\hat\Sigma^{-1}Z\right)_{ii} = \hat\mu_{i\cdot} - \frac{\hat\tau_I\hat\mu_{i\cdot}^2}{1 + \hat\tau_I\hat\mu_{i\cdot}} = \frac{\hat\mu_{i\cdot}}{1 + \hat\tau_I\hat\mu_{i\cdot}}.$$
 
-$v_1$ and $v_2$ differ only in the projection: $v_1$ projects out all of $X$ in the $\hat\Sigma^{-1}$ metric, while $v_2$ projects out $X_d$ with weights $\hat M$. $\hat r$ is therefore close to 1 when cell-level covariates are nearly uncorrelated with donor identity ($\hat r = 0.9986$ in the simulations below).
+$v_1$ and $v_2$ differ only in the projection: $v_1$ projects out all of $X$ in the $\hat\Sigma^{-1}$ metric, while $v_2$ projects out $X_d$ with weights $\hat M$. $\hat r$ is therefore close to 1 when cell-level covariates are nearly uncorrelated with donor identity (median $\hat r = 0.9996$, range 0.965–1.000, over the 2,400 simulated peaks below).
 
 ## Score test for single variants (Step 2)
 
@@ -112,7 +118,7 @@ The score statistic and its variance (no GRM; `src/SAIGE_test.cpp:238-264`) are
 
 $$T = \sum_i\tilde g_{d,i}\,r_i, \qquad \widehat{\mathrm{Var}}(T) = \hat r\sum_i\tilde g_{d,i}^2\,\frac{\hat\mu_{i\cdot}}{1 + \hat\tau_I\hat\mu_{i\cdot}},$$
 
-and $T^2/\widehat{\mathrm{Var}}(T)$ is compared with $\chi^2_1$. On a fitted model, both expressions matched the step 2 output (`Tstat` and `var`) to a relative difference below $5\times10^{-6}$.
+and $T^2/\widehat{\mathrm{Var}}(T)$ is compared with $\chi^2_1$. On a peak fitted with `--tol=1e-3 --tauFloor=1e-6`, both expressions matched the step 2 output (`Tstat` and `var`) to a relative difference below $5\times10^{-6}$.
 
 At convergence the PQL estimating equations give $y - \hat\mu = \hat P\tilde y$, so $X^\top(y - \hat\mu) = 0$ and in particular $X_d^\top r = 0$. Then $T = g^\top Z^\top(y - \hat\mu)$, the statistic of the paper. In practice this holds up to the convergence of step 1: on the same model, the unadjusted $g^\top r$ differed from `Tstat` by up to $5\times10^{-4}$ relative. The identity does not hold after the `--isCovariateOffset=TRUE` fallback, where $T$ is the score of the covariate-adjusted genotype.
 
@@ -140,7 +146,7 @@ $$\prod_j\frac{\mu_{ij}^{y_{ij}}e^{-\mu_{ij}}}{y_{ij}!} = \underbrace{\frac{y_{i
 
 Here $\mu_{i\cdot} = s_{i\cdot}\exp(\alpha_0 + X_{di}\alpha_d + G_i\beta + b_i)$, and dots denote sums over cells. The cell-level model is thus the donor-level Poisson GLMM for the pseudobulk count $y_{i\cdot}$ with offset $\log s_{i\cdot}$. The same holds for the PQL working model. When $X$ has only donor-level columns, cells enter the fit, $T$ and $\widehat{\mathrm{Var}}(T)$ only through $y_{i\cdot}$ and $\hat\mu_{i\cdot}$.
 
-We checked this in SAIGE-QTL's own fit. We fitted 50 cells per donor, and separately the same counts summed into two pseudo-cells per donor; step 1 fails with a single row per donor. With the package's Hutchinson estimator, the two fits differed by its Monte Carlo error (up to 1.2% in $\hat\tau_I$). With the trace computed exactly from the block structure of $\Sigma$ (a modification not in this commit), $\hat\tau_I$ agreed to six significant digits and step 2 statistics to $10^{-5}$. Relative to pseudobulk, the single-cell model therefore adds two things:
+We checked this in SAIGE-QTL's own fit, with `--tol=1e-5`. We fitted 50 cells per donor, and separately the same counts summed into two pseudo-cells per donor; step 1 fails with a single row per donor. With the package's Hutchinson estimator, the two fits differed by its Monte Carlo error (up to 1.2% in $\hat\tau_I$). With the trace computed exactly from the block structure of $\Sigma$ (a modification not in this commit), $\hat\tau_I$ agreed to six significant digits and step 2 statistics to $10^{-5}$. Relative to pseudobulk, the single-cell model therefore adds two things:
 - cell-level covariates $X_c$;
 - the count likelihood itself, in place of a linear model on normalized log counts.
 
@@ -192,76 +198,54 @@ A separate deep-donor scenario has 50% zeros, 1,000 cells per donor, $\tau_I \in
 - the type I error at $\alpha = 0.05$, $10^{-2}$, $10^{-3}$ and $10^{-4}$, with and without SPA, with 95% confidence intervals from a bootstrap over peaks (conditional on the permutations);
 - the ACAT type I error for blocks of 50 adjacent variants.
 
-Peaks where step 1 fell back are reported separately.
-
-All results use $\epsilon = 10^{-5}$.
+All results use `--tol=1e-3` and `--tauFloor=1e-6`.
 
 **Table 1.** Type I error by scenario. The last two rows are the deep-donor scenario (20 peaks, one permutation).
 
-| Zeros | τ_I | Cells per donor | Peaks tested | Step 1 failed | λ_GC | α = 0.05 (95% CI) | α = 10⁻² | α = 10⁻³ (95% CI) | α = 10⁻⁴ | ACAT-50, α = 0.05 |
-|---|---|---|---|---|---|---|---|---|---|---|
-| 80% | 0 | 50 | 100 | 0 | 0.97 | 0.045 (0.043–0.047) | 0.0081 | 0.00063 (0.00057–0.00070) | 4.6e-05 | 0.032 |
-| 80% | 0 | 300 | 100 | 0 | 0.97 | 0.046 (0.043–0.048) | 0.0083 | 0.00068 (0.00061–0.00076) | 5.6e-05 | 0.034 |
-| 80% | 0.1 | 50 | 100 | 0 | 1.01 | 0.049 (0.049–0.049) | 0.0090 | 0.00069 (0.00064–0.00073) | 5.5e-05 | 0.035 |
-| 80% | 0.1 | 300 | 100 | 0 | 1.05 | 0.053 (0.053–0.054) | 0.0104 | 0.00097 (0.00090–0.00104) | 7.5e-05 | 0.049 |
-| 80% | 0.5 | 50 | 100 | 0 | 1.03 | 0.050 (0.049–0.050) | 0.0092 | 0.00066 (0.00061–0.00070) | 4.2e-05 | 0.034 |
-| 80% | 0.5 | 300 | 100 | 0 | 1.03 | 0.050 (0.050–0.051) | 0.0091 | 0.00065 (0.00061–0.00069) | 4.7e-05 | 0.033 |
-| 95% | 0 | 50 | 100 | 0 | 0.96 | 0.044 (0.042–0.045) | 0.0076 | 0.00057 (0.00050–0.00064) | 3.7e-05 | 0.028 |
-| 95% | 0 | 300 | 100 | 0 | 0.97 | 0.045 (0.043–0.047) | 0.0083 | 0.00065 (0.00057–0.00072) | 4.1e-05 | 0.033 |
-| 95% | 0.1 | 50 | 100 | 0 | 1.02 | 0.050 (0.050–0.051) | 0.0094 | 0.00074 (0.00070–0.00079) | 4.8e-05 | 0.038 |
-| 95% | 0.1 | 300 | 100 | 0 | 1.04 | 0.053 (0.052–0.053) | 0.0102 | 0.00083 (0.00077–0.00089) | 6.7e-05 | 0.043 |
-| 95% | 0.5 | 50 | 100 | 0 | 1.02 | 0.050 (0.049–0.050) | 0.0090 | 0.00064 (0.00060–0.00069) | 3.1e-05 | 0.032 |
-| 95% | 0.5 | 300 | 100 | 0 | 1.04 | 0.051 (0.050–0.051) | 0.0094 | 0.00075 (0.00070–0.00080) | 5.2e-05 | 0.038 |
-| 99% | 0 | 50 | 97 | 3% | 0.95 | 0.043 (0.041–0.045) | 0.0071 | 0.00043 (0.00038–0.00049) | 1.9e-05 | 0.022 |
-| 99% | 0 | 300 | 100 | 0 | 0.98 | 0.045 (0.044–0.047) | 0.0079 | 0.00066 (0.00058–0.00073) | 4.0e-05 | 0.032 |
-| 99% | 0.1 | 50 | 100 | 0 | 0.98 | 0.045 (0.043–0.046) | 0.0073 | 0.00047 (0.00041–0.00052) | 2.5e-05 | 0.023 |
-| 99% | 0.1 | 300 | 100 | 0 | 1.05 | 0.053 (0.052–0.053) | 0.0103 | 0.00082 (0.00077–0.00087) | 6.4e-05 | 0.044 |
-| 99% | 0.5 | 50 | 100 | 0 | 1.01 | 0.047 (0.046–0.048) | 0.0077 | 0.00048 (0.00043–0.00053) | 2.6e-05 | 0.024 |
-| 99% | 0.5 | 300 | 100 | 0 | 1.05 | 0.053 (0.053–0.054) | 0.0101 | 0.00088 (0.00083–0.00093) | 3.9e-05 | 0.044 |
-| 99.5% | 0 | 50 | 84 | 16% | 0.95 | 0.041 (0.039–0.043) | 0.0061 | 0.00030 (0.00026–0.00034) | 1.0e-05 | 0.016 |
-| 99.5% | 0 | 300 | 100 | 0 | 0.94 | 0.043 (0.040–0.045) | 0.0074 | 0.00054 (0.00047–0.00061) | 3.7e-05 | 0.028 |
-| 99.5% | 0.1 | 50 | 91 | 9% | 0.97 | 0.043 (0.041–0.045) | 0.0066 | 0.00038 (0.00033–0.00044) | 1.2e-05 | 0.019 |
-| 99.5% | 0.1 | 300 | 100 | 0 | 1.02 | 0.051 (0.049–0.052) | 0.0095 | 0.00077 (0.00070–0.00084) | 4.3e-05 | 0.039 |
-| 99.5% | 0.5 | 50 | 67 | 33% | 1.03 | 0.047 (0.046–0.048) | 0.0073 | 0.00039 (0.00032–0.00046) | 1.8e-05 | 0.019 |
-| 99.5% | 0.5 | 300 | 100 | 0 | 1.04 | 0.052 (0.051–0.052) | 0.0094 | 0.00072 (0.00067–0.00077) | 3.5e-05 | 0.037 |
-| 50% | 0.0005 | 1000 | 20 | 0 | 1.05 | 0.052 (0.050–0.054) | 0.0096 | 0.00092 (0.00069–0.00114) | 7.8e-05 | 0.042 |
-| 50% | 0.002 | 1000 | 20 | 0 | 1.06 | 0.055 (0.054–0.056) | 0.0109 | 0.00083 (0.00067–0.00099) | 2.6e-05 | 0.044 |
-
-**Table 2.** Type I error by step 1 outcome, pooled over the 24 main scenarios.
-
-| Step 1 fit | Peaks | λ_GC range over scenarios | α = 0.05 | α = 10⁻² | α = 10⁻³ | α = 10⁻⁴ |
-|---|---|---|---|---|---|---|
-| full model | 2241 | 0.94–1.05 | 0.048 | 0.0085 | 0.00064 | 4.1e-05 |
-| covariate-offset fallback | 98 | 1.01–1.08 | 0.052 | 0.0095 | 0.00074 | 3.8e-05 |
-
-**Table 3.** Step 1 outcome by the number of donors with nonzero counts, pooled over the 24 main scenarios.
-
-| Donors with nonzero counts (of 100) | Peaks | Step 1 failed | Fallback attempted |
-|---|---|---|---|
-| ≤ 15 | 11 | 36% | 36% |
-| 15–20 | 112 | 33% | 43% |
-| 20–25 | 129 | 12% | 29% |
-| 25–30 | 62 | 3% | 18% |
-| 30–40 | 200 | 0.5% | 8% |
-| 40–60 | 92 | 1% | 8% |
-| > 60 | 1794 | 0% | 2% |
+| Zeros | τ_I | Cells per donor | Peaks tested | λ_GC | α = 0.05 (95% CI) | α = 10⁻² | α = 10⁻³ (95% CI) | α = 10⁻⁴ | ACAT-50, α = 0.05 |
+|---|---|---|---|---|---|---|---|---|---|
+| 80% | 0 | 50 | 100 | 0.97 | 0.045 (0.043–0.047) | 0.0081 | 0.00063 (0.00057–0.00070) | 4.6e-05 | 0.032 |
+| 80% | 0 | 300 | 100 | 0.97 | 0.046 (0.043–0.048) | 0.0083 | 0.00068 (0.00060–0.00076) | 5.6e-05 | 0.034 |
+| 80% | 0.1 | 50 | 100 | 1.01 | 0.049 (0.049–0.049) | 0.0090 | 0.00068 (0.00064–0.00073) | 5.5e-05 | 0.035 |
+| 80% | 0.1 | 300 | 100 | 1.05 | 0.053 (0.053–0.054) | 0.0104 | 0.00097 (0.00090–0.00104) | 7.5e-05 | 0.049 |
+| 80% | 0.5 | 50 | 100 | 1.03 | 0.050 (0.049–0.050) | 0.0092 | 0.00066 (0.00061–0.00070) | 4.2e-05 | 0.034 |
+| 80% | 0.5 | 300 | 100 | 1.03 | 0.050 (0.050–0.051) | 0.0090 | 0.00065 (0.00061–0.00069) | 4.6e-05 | 0.032 |
+| 95% | 0 | 50 | 100 | 0.96 | 0.044 (0.042–0.045) | 0.0076 | 0.00057 (0.00050–0.00064) | 3.7e-05 | 0.028 |
+| 95% | 0 | 300 | 100 | 0.97 | 0.045 (0.043–0.047) | 0.0083 | 0.00065 (0.00057–0.00072) | 4.1e-05 | 0.033 |
+| 95% | 0.1 | 50 | 100 | 1.02 | 0.050 (0.050–0.051) | 0.0094 | 0.00074 (0.00070–0.00079) | 4.8e-05 | 0.038 |
+| 95% | 0.1 | 300 | 100 | 1.04 | 0.053 (0.052–0.053) | 0.0102 | 0.00084 (0.00078–0.00090) | 6.7e-05 | 0.043 |
+| 95% | 0.5 | 50 | 100 | 1.02 | 0.049 (0.049–0.050) | 0.0090 | 0.00064 (0.00060–0.00069) | 3.1e-05 | 0.032 |
+| 95% | 0.5 | 300 | 100 | 1.04 | 0.051 (0.050–0.051) | 0.0094 | 0.00075 (0.00070–0.00080) | 5.2e-05 | 0.037 |
+| 99% | 0 | 50 | 100 | 0.96 | 0.043 (0.041–0.045) | 0.0071 | 0.00043 (0.00038–0.00048) | 1.9e-05 | 0.022 |
+| 99% | 0 | 300 | 100 | 0.97 | 0.045 (0.044–0.047) | 0.0079 | 0.00065 (0.00058–0.00072) | 3.9e-05 | 0.031 |
+| 99% | 0.1 | 50 | 100 | 0.98 | 0.045 (0.043–0.046) | 0.0073 | 0.00046 (0.00040–0.00051) | 2.5e-05 | 0.023 |
+| 99% | 0.1 | 300 | 100 | 1.05 | 0.053 (0.052–0.053) | 0.0102 | 0.00081 (0.00076–0.00086) | 6.3e-05 | 0.043 |
+| 99% | 0.5 | 50 | 100 | 1.01 | 0.047 (0.046–0.048) | 0.0077 | 0.00047 (0.00043–0.00052) | 2.6e-05 | 0.024 |
+| 99% | 0.5 | 300 | 100 | 1.05 | 0.053 (0.053–0.054) | 0.0101 | 0.00087 (0.00082–0.00092) | 3.8e-05 | 0.045 |
+| 99.5% | 0 | 50 | 100 | 0.96 | 0.042 (0.040–0.043) | 0.0061 | 0.00030 (0.00027–0.00034) | 1.1e-05 | 0.016 |
+| 99.5% | 0 | 300 | 100 | 0.94 | 0.042 (0.040–0.045) | 0.0073 | 0.00053 (0.00046–0.00060) | 3.6e-05 | 0.028 |
+| 99.5% | 0.1 | 50 | 100 | 0.97 | 0.043 (0.042–0.045) | 0.0066 | 0.00038 (0.00033–0.00042) | 1.2e-05 | 0.019 |
+| 99.5% | 0.1 | 300 | 100 | 1.02 | 0.050 (0.049–0.052) | 0.0095 | 0.00076 (0.00070–0.00083) | 4.3e-05 | 0.038 |
+| 99.5% | 0.5 | 50 | 100 | 1.03 | 0.047 (0.046–0.048) | 0.0070 | 0.00037 (0.00032–0.00041) | 1.6e-05 | 0.018 |
+| 99.5% | 0.5 | 300 | 100 | 1.04 | 0.052 (0.051–0.052) | 0.0094 | 0.00072 (0.00067–0.00077) | 3.5e-05 | 0.037 |
+| 50% | 0.0005 | 1000 | 20 | 1.05 | 0.052 (0.050–0.054) | 0.0096 | 0.00092 (0.00069–0.00114) | 7.8e-05 | 0.042 |
+| 50% | 0.002 | 1000 | 20 | 1.06 | 0.055 (0.054–0.056) | 0.0109 | 0.00083 (0.00067–0.00099) | 2.6e-05 | 0.044 |
 
 **Results.**
 - **Tail ($\alpha \le 10^{-3}$).** No scenario was inflated: every scenario was at or below the nominal level.
-- **$\alpha = 0.05$.** Scenarios with $\tau_I > 0$ and 300 cells per donor, and the deep-donor scenarios, were slightly liberal: up to 0.055, with confidence intervals excluding 0.05, and $\lambda_{GC}$ up to 1.06.
+- **$\alpha = 0.05$.** Six of the eight scenarios with $\tau_I > 0$ and 300 cells per donor were slightly liberal: up to 0.053, with confidence intervals excluding 0.05, and $\lambda_{GC}$ up to 1.05. The deep-donor scenarios gave 0.052 and 0.055 ($\lambda_{GC}$ 1.05 and 1.06).
 - **Conservative scenarios.** Scenarios with $\tau_I = 0$, and sparse scenarios with 50 cells per donor, were conservative, more so in the tail (0.00030 at $\alpha = 10^{-3}$ for 99.5% zeros, $\tau_I = 0$, 50 cells).
 - **ACAT.** ACAT over 50-variant blocks stayed at or below nominal (0.016–0.049), following the variant-level tail.
-- **Fallback peaks.** These were slightly liberal at $\alpha = 0.05$ but not in the tail (Table 2).
-- **Step 1 failures.** Failures concentrated in peaks with fewer than 30 donors having nonzero counts (Table 3). They are failures of the convergence criterion at $\epsilon = 10^{-5}$: with $\epsilon = 10^{-3}$ the same 2,400 peaks gave one fallback, no failures and $\lambda_{GC}$ 0.94–1.05, but $10^{-3}$ is not safe for deep donors (Step 1).
+- **Step 1.** All 2,400 peaks converged, one through the covariate-offset fallback. Step 1 above compares this with `--tol=1e-5`.
 
 The confidence intervals come from a bootstrap over peaks. They are conditional on the genotype permutations shared by all peaks, so they understate the uncertainty.
 
 ## Assumptions and limitations
 
 - **No cell-level overdispersion.** If counts are overdispersed within donors, $\mathrm{Var}(T)$ is underestimated. A diagnostic is the Pearson statistic $\sum_{ij}(y_{ij} - \hat\mu_{ij})^2/\hat\mu_{ij}$ divided by $N - p$, which should be near 1.
-- **Bounds on $\hat\tau_I$.** The floor at `--tol` and the cap below 1 both underestimate $\mathrm{Var}(T)$ when the true $\tau_I$ lies outside $[\epsilon, 1)$; see Step 1.
+- **Bounds on $\hat\tau_I$.** The floor $\epsilon_f$ and the cap below 1 both underestimate $\mathrm{Var}(T)$ when the true $\tau_I$ lies outside $[\epsilon_f, 1)$; see Step 1.
 - **PQL bias.** PQL tends to underestimate variance components for sparse counts (Breslow & Lin 1995). Without cell-level covariates, the fit depends on the data only through donor totals (see the information-content section), so the bias is governed by $\mu_{i\cdot}$ rather than by per-cell counts.
-- **Few donors with counts.** Peaks with few donors having nonzero counts more often fail the step 1 convergence criterion at $\epsilon = 10^{-5}$ (Table 3). They carry little information about $\beta$, so dropping them before step 1 saves compute; calibration does not require it.
+- **Few donors with counts.** Peaks with few donors having nonzero counts carry little information about $\beta$. Dropping them before step 1 saves compute; calibration does not require it.
 - **SE before SPA.** SE is computed before the SPA, so for SPA-adjusted variants $\hat\beta/\mathrm{SE}$ does not reproduce the reported p-value.
 - **Poisson only.** `--traitType=count_nb` has no SPA branch in step 2.
 - **Mapping bias.** Reads carrying the alternative allele can map less well; WASP-style filtering (van de Geijn et al. 2015) removes this bias.
@@ -282,7 +266,7 @@ The confidence intervals come from a bootstrap over peaks. They are conditional 
 | $\hat W$, $\Sigma$, $P$ | PQL weights, working covariance and projection |
 | $\tilde g_d$ | genotype adjusted for donor-level covariates |
 | $\hat r$ | variance ratio (`sparse` row) |
-| $\epsilon$ | `--tol`: convergence threshold and floor on $\tau$ |
+| $\epsilon$, $\epsilon_f$ | `--tol` (convergence threshold) and `--tauFloor` (floor on $\tau$; defaults to $\epsilon$) |
 
 ## References
 
