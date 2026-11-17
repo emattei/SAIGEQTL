@@ -48,6 +48,7 @@ qtl/
 
 - 📖 **User Guide**: https://weizhou0.github.io/SAIGE-QTL-doc/
 - 🐛 **Issues**: https://github.com/weizhou0/SAIGEQTL/issues
+- 🧬 **caQTL mapping from single-cell ATAC data**: [methods](docs/caQTL_methods.md), [usage](docs/caQTL_usage.md)
 
 ## Citation
 
@@ -64,6 +65,7 @@ step1_fitNULLGLMM_qtl.R \
   --plinkFile=data/genotypes \
   --phenoFile=data/phenotypes.txt \
   --phenoCol=trait \
+  --traitType=count \
   --outputPrefix=results/step1
 
 # Step 2: Association testing  

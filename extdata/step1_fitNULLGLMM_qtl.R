@@ -35,7 +35,7 @@ option_list <- list(
     type = "logical", default = FALSE,
     help = "Optional. Whether to remove zeros in the phenotype"
   ),
-  make_option("--traitType", type = "character", default = "binary", help = "Required. binary or quantitative [default=binary]"),
+  make_option("--traitType", type = "character", default = "binary", help = "Required. binary, quantitative, count or count_nb [default=binary]"),
   make_option("--invNormalize",
     type = "logical", default = FALSE,
     help = "Optional. Only for quantitative. Whether to perform the inverse normalization for the phenotype [default='FALSE']"
