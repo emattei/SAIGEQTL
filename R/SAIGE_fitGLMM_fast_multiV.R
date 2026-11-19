@@ -431,6 +431,8 @@ fitNULLGLMM_multiV <- function(plinkFile = "",
       if (!all(sampleCovarCol %in% covarColList)) {
         stop("ERROR! all covariates in sampleCovarCol must be in covarColList\n")
       }
+      # Sample covariates first: after the QR transform a column is sample-level only if all columns before it are.
+      covarColList <- c(intersect(covarColList, sampleCovarCol), setdiff(covarColList, sampleCovarCol))
     }
 
     if (FemaleOnly | MaleOnly) {
