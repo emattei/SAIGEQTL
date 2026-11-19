@@ -68,6 +68,10 @@ option_list <- list(
     type = "numeric", default = 0.02,
     help = "Optional. Tolerance for fitting the null GLMM to converge [default=0.02]."
   ),
+  make_option("--tauFloor",
+    type = "numeric", default = NULL,
+    help = "Optional. Variance components below tauFloor are set to 0; not used for count_nb [default=tol]."
+  ),
   make_option("--maxiter",
     type = "integer", default = 20,
     help = "Optional. Maximum number of iterations used to fit the null GLMM [default=20]."
@@ -348,6 +352,7 @@ args_list$invNormalize <- opt$invNormalize
 if (!is.null(covars) && length(covars) > 0 && !all(covars == "")) args_list$covarColList <- covars
 if (!is.null(qcovars) && length(qcovars) > 0 && !all(qcovars == "")) args_list$qCovarCol <- qcovars
 args_list$tol <- opt$tol
+args_list$tauFloor <- opt$tauFloor
 args_list$maxiter <- opt$maxiter
 args_list$tolPCG <- opt$tolPCG
 args_list$maxiterPCG <- opt$maxiterPCG

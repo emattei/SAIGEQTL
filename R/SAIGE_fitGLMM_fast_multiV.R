@@ -51,6 +51,7 @@
 #' @param isExportResiduals logical. export a residual vector. By default, FALSE.
 #' @param varRatioBatchSize integer. Batch size for variance ratio estimation. Higher values use more memory but may be faster. Set to 1 for sequential processing (low memory), or >1 for batch processing. By default, 10.
 #' @param solverMethod character. Solver method for fitting null model: 'auto' (automatic selection), 'pcg' (Preconditioned Conjugate Gradient), 'smw' (Sherman-Morrison-Woodbury). When 'auto': SMW for repeated cells without GRM, PCG when GRM is provided or no repeated cells. By default, 'auto'.
+#' @param tauFloor numeric. Variance components below tauFloor are set to 0 while fitting the null model. Not used for count_nb. By default, equal to tol.
 #' @return a file ended with .rda that contains the glmm model information, a file ended with .varianceRatio.txt that contains the variance ratio values, and a file ended with #markers.SPAOut.txt that contains the SPAGMMAT tests results for the markers used for estimating the variance ratio.
 #' @export
 fitNULLGLMM_multiV <- function(plinkFile = "",
@@ -122,7 +123,8 @@ fitNULLGLMM_multiV <- function(plinkFile = "",
                                isShrinkModelOutput = FALSE,
                                isExportResiduals = FALSE,
                                varRatioBatchSize = 10,
-                               solverMethod = "auto") {
+                               solverMethod = "auto",
+                               tauFloor = tol) {
   start_0 <- proc.time()
   ## set up output files
   modelOut <- paste0(outputPrefix, ".rda")
@@ -1177,7 +1179,7 @@ print(start_7 - start_0)
         chromosomeEndIndexVec = chromosomeEndIndexVec,
         traceCVcutoff = traceCVcutoff, isCovariateTransform = isCovariateTransform,
         isDiagofKinSetAsOne = isDiagofKinSetAsOne,
-        isLowMemLOCO = isLowMemLOCO, covarianceIdxMat = covarianceIdxMat, isStoreSigma = isStoreSigma, useSparseGRMtoFitNULL = useSparseGRMtoFitNULL, useGRMtoFitNULL = useGRMtoFitNULL, isSparseGRMIdentity = isSparseGRMIdentity
+        isLowMemLOCO = isLowMemLOCO, covarianceIdxMat = covarianceIdxMat, isStoreSigma = isStoreSigma, useSparseGRMtoFitNULL = useSparseGRMtoFitNULL, useGRMtoFitNULL = useGRMtoFitNULL, isSparseGRMIdentity = isSparseGRMIdentity, tauFloor = tauFloor
       ))
       modglmm$obj.glm.null$model <- as.data.frame(modglmm$obj.glm.null$model)
     } else {
@@ -2177,7 +2179,7 @@ extractVarianceRatio_multiV <- function(obj.glmm.null,
 
 
 # Fits the null glmm
-glmmkin.ai_PCG_Rcpp_multiV <- function(bedFile, bimFile, famFile, Xorig, isCovariateOffset, fit0, tau = c(0, 0), fixtau = c(0, 0), maxiter = 20, tol = 0.02, verbose = TRUE, nrun = 30, tolPCG = 1e-5, maxiterPCG = 500, subPheno, indicatorGenoSamplesWithPheno, obj.noK, out.transform, tauInit, memoryChunk, LOCO, chromosomeStartIndexVec, chromosomeEndIndexVec, traceCVcutoff, isCovariateTransform, isDiagofKinSetAsOne, isLowMemLOCO, covarianceIdxMat = NULL, isStoreSigma = FALSE, useSparseGRMtoFitNULL = TRUE, useGRMtoFitNULL = TRUE, isSparseGRMIdentity = FALSE) {
+glmmkin.ai_PCG_Rcpp_multiV <- function(bedFile, bimFile, famFile, Xorig, isCovariateOffset, fit0, tau = c(0, 0), fixtau = c(0, 0), maxiter = 20, tol = 0.02, verbose = TRUE, nrun = 30, tolPCG = 1e-5, maxiterPCG = 500, subPheno, indicatorGenoSamplesWithPheno, obj.noK, out.transform, tauInit, memoryChunk, LOCO, chromosomeStartIndexVec, chromosomeEndIndexVec, traceCVcutoff, isCovariateTransform, isDiagofKinSetAsOne, isLowMemLOCO, covarianceIdxMat = NULL, isStoreSigma = FALSE, useSparseGRMtoFitNULL = TRUE, useGRMtoFitNULL = TRUE, isSparseGRMIdentity = FALSE, tauFloor = tol) {
   # Fits the null generalized linear mixed model for a poisson, binomial, and gaussian
   # Args:
   #  genofile: string. Plink file for the M1 markers to be used to construct the genetic relationship matrix
@@ -2411,7 +2413,7 @@ glmmkin.ai_PCG_Rcpp_multiV <- function(bedFile, bimFile, famFile, Xorig, isCovar
     # }
 
 
-    fit <- fitglmmaiRPCG_multiV(re.coef$Y, X, re.coef$W, tau, fixtau, re.coef$Sigma_iY, re.coef$Sigma_iX, re.coef$cov, nrun, maxiterPCG, tolPCG, tol = tol, traceCVcutoff = traceCVcutoff, LOCO = FALSE)
+    fit <- fitglmmaiRPCG_multiV(re.coef$Y, X, re.coef$W, tau, fixtau, re.coef$Sigma_iY, re.coef$Sigma_iX, re.coef$cov, nrun, maxiterPCG, tolPCG, tol = tauFloor, traceCVcutoff = traceCVcutoff, LOCO = FALSE)
 
     t_end_fitglmmaiRPCG <- proc.time()
     cat("t_end_fitglmmaiRPCG - t_begin_fitglmmaiRPCG\n")
