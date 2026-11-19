@@ -2480,6 +2480,11 @@ glmmkin.ai_PCG_Rcpp_multiV <- function(bedFile, bimFile, famFile, Xorig, isCovar
   Y <- re.coef$Y
   mu <- re.coef$mu
   converged <- ifelse(i < maxiter, TRUE, FALSE)
+  # With an intercept, a Poisson fit has sum(mu) = sum(y); a large gap means the coefficients diverged (quasi-separation).
+  if (family$family == "poisson" && sum(y) > 0 && !isTRUE(abs(log(sum(mu) / sum(y))) <= 0.01)) {
+    warning("Fitted values do not sum to the observed counts, model not converged...", call. = FALSE)
+    converged <- FALSE
+  }
 
   # var_weights = NULL
   # if(!is.null(var_weights)){
