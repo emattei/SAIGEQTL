@@ -465,42 +465,6 @@ fitNULLGLMM_multiV <- function(plinkFile = "",
 
 
 
-if(FALSE){
-    if (length(covarColList) > 0) {
-      formula <- paste0(phenoCol, "~", paste0(covarColList,
-        collapse = "+"
-      ))
-      hasCovariate <- TRUE
-    } else {
-      formula <- paste0(phenoCol, "~ 1")
-      hasCovariate <- FALSE
-    }
-
-    cat("formula is ", formula, "\n")
-    formula.null <- as.formula(formula)
-    mmat <- model.matrix(formula.null, data, na.action = NULL)
-    mmat <- cbind(mmat, data[, which(colnames(data) == phenoCol), drop = F])
-    colnames(mmat)[ncol(mmat)] <- phenoCol
-
-    if (length(sampleCovarCol) > 0) {
-      cat(sampleCovarCol, "are sample-level covariates\n")
-      # check which sample-level covariates are categorical and record the names after factorizing in the data frame
-      if (length(qCovarCol) > 0) {
-        if (any(sampleCovarCol %in% qCovarCol)) {
-          sampleCovarCol_q <- sampleCovarCol[which(sampleCovarCol %in% qCovarCol)]
-          formula_sq <- paste0("~", paste0(sampleCovarCol_q, collapse = "+"))
-          formula_sq.null <- as.formula(formula_sq)
-          mmat_sq <- model.matrix(formula_sq.null, data, na.action = NULL)
-          sampleCovarCol_q_names <- colnames(mmat_sq)[-1]
-          rm(mmat_sq)
-        } else {
-          sampleCovarCol_q_names <- NULL
-        }
-      } else {
-        sampleCovarCol_q_names <- NULL
-      }
-    }
-} #if(FALSE){
 
   # Pre-compute logical conditions
   hasCovariate <- length(covarColList) > 0
@@ -1689,26 +1653,6 @@ extractVarianceRatio_multiV <- function(obj.glmm.null,
 
 
   ## randomize the marker orders to be tested
-  if (FALSE) {
-    if (useSparseGRMtoFitNULL | useSparseGRMforVarRatio) {
-      sparseSigma <- getSparseSigma(
-        bedFile = bedFile, bimFile = bimFile, famFile = famFile,
-        outputPrefix = varRatioOutFile,
-        sparseGRMFile = sparseGRMFile,
-        sparseGRMSampleIDFile = sparseGRMSampleIDFile,
-        numRandomMarkerforSparseKin = numRandomMarkerforSparseKin,
-        relatednessCutoff = relatednessCutoff,
-        minMAFforGRM = minMAFforGRM,
-        nThreads = nThreads,
-        isDiagofKinSetAsOne = isDiagofKinSetAsOne,
-        obj.glmm.null = obj.glmm.null,
-        W = W, tauVecNew = tauVecNew
-      )
-      if (length(tauVecNew) > 2) {
-        sparseSigma <- sparseSigma + getProdTauKmat(tauVecNew[3:length(tauVecNew)])
-      }
-    }
-  }
 
 
   mMarkers <- gettotalMarker()
