@@ -96,10 +96,10 @@ This gives the ACAT p-value over the window, which is the same as `SAIGEQTL::get
 |---|---|
 | `--traitType` omitted | Step 1 fails: `y values must be 0 <= y <= 1` |
 | No `--sampleCovarColList` | Step 1 fails |
-| Character covariate column | Step 1 fails: `object '<name>' not found` |
+| Character covariate column not in `--qCovarColList` | Step 1 fails: `non-numeric phenotype or covariates` |
 | Categorical covariate in `--qCovarColList` | Step 1 runs, but the covariate is missing from the step 2 donor-level design |
 | Cell covariate listed before donor covariates (`--isCovariateTransform=TRUE`) | Step 1 runs, but the step 2 donor-level design is wrong |
-| Peak name with `:` or `-` | Step 1 fails: `object 'chr1' not found` |
+| Peak name with `:` or `-` | Step 1 fails: `phenoCol and covariate names must be valid R names`. Rename peaks, e.g. `chr1_100_200` |
 | All-zero peak | Step 1 reports `SUCCESS`, with the donor variance at its floor (1e-6 with `--tauFloor=1e-6`) |
 | `--tol=0.02` (default) without `--tauFloor` | Donor variances below 0.02 are set to 0 |
 | `chr1`-style codes in the step 1 `--plinkFile` | Step 1 fails: `chromosome column in plink bim file is no numeric` |
