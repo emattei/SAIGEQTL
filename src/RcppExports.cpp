@@ -499,6 +499,15 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// closeOutfiles
+void closeOutfiles();
+RcppExport SEXP _SAIGEQTL_closeOutfiles() {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    closeOutfiles();
+    return R_NilValue;
+END_RCPP
+}
 // set_flagSparseGRM_cur_SAIGE
 void set_flagSparseGRM_cur_SAIGE(bool t_flagSparseGRM_cur);
 RcppExport SEXP _SAIGEQTL_set_flagSparseGRM_cur_SAIGE(SEXP t_flagSparseGRM_curSEXP) {
@@ -2436,6 +2445,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_SAIGEQTL_removeOutfile_inGroup", (DL_FUNC) &_SAIGEQTL_removeOutfile_inGroup, 0},
     {"_SAIGEQTL_removeOutfile_inSingle", (DL_FUNC) &_SAIGEQTL_removeOutfile_inSingle, 0},
     {"_SAIGEQTL_openOutfile_single", (DL_FUNC) &_SAIGEQTL_openOutfile_single, 5},
+    {"_SAIGEQTL_closeOutfiles", (DL_FUNC) &_SAIGEQTL_closeOutfiles, 0},
     {"_SAIGEQTL_set_flagSparseGRM_cur_SAIGE", (DL_FUNC) &_SAIGEQTL_set_flagSparseGRM_cur_SAIGE, 1},
     {"_SAIGEQTL_set_flagSparseGRM_cur_SAIGE_org", (DL_FUNC) &_SAIGEQTL_set_flagSparseGRM_cur_SAIGE_org, 0},
     {"_SAIGEQTL_copy_singleInGroup", (DL_FUNC) &_SAIGEQTL_copy_singleInGroup, 0},

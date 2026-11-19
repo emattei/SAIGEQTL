@@ -126,6 +126,7 @@ SPAGMMATtest <- function(bgenFile = "",
                          is_sparseGRM = TRUE,
                          max_MAC_use_ER = 4,
                          is_EmpSPA = FALSE) {
+  on.exit(closeOutfiles(), add = TRUE)
   # cat("r.corr is ", r.corr, "\n")
   if (!(impute_method %in% c("best_guess", "mean", "minor"))) {
     stop("impute_method should be 'best_guess', 'mean' or 'minor'.")
