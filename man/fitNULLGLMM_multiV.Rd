@@ -70,7 +70,7 @@ fitNULLGLMM_multiV(
   VcellmatFilelist = "",
   VcellmatSampleFilelist = "",
   useGRMtoFitNULL = TRUE,
-  isStoreSigma = FALSE,
+  isStoreSigma = TRUE,
   isShrinkModelOutput = FALSE,
   isExportResiduals = FALSE,
   varRatioBatchSize = 10,
@@ -171,7 +171,7 @@ fitNULLGLMM_multiV(
 
 \item{isCovariateOffset}{logical. Whether to estimate fixed effect coeffciets. By default, FALSE.}
 
-\item{isStoreSigma}{logical. Whether to store sigma matrix. By default, FALSE. If number of individuals is greater than 10,000, this option may use large memory}
+\item{isStoreSigma}{logical. Whether to store sigma matrix. By default, TRUE, as in the step 1 script; step 2 needs it. If number of individuals is greater than 10,000, this option may use large memory}
 
 \item{isShrinkModelOutput}{logical. remove unnecessary objects for step2 from the model output. By default, FALSE.}
 
