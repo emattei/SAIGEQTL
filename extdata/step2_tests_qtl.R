@@ -94,11 +94,11 @@ option_list <- list(
   ),
   make_option("--impute_method",
     type = "character", default = "best_guess",
-    help = "Imputation method for missing dosages. best_guess, mean or minor. best_guess: missing dosages imputed as best guessed genotyes round(2*allele frequency). mean: missing dosages are imputed as mean (2*allele frequency). minor: missing dosages are imputed as minor allele homozygotes [default=minor]"
+    help = "Imputation method for missing dosages. best_guess, mean or minor. best_guess: missing dosages imputed as best guessed genotyes round(2*allele frequency). mean: missing dosages are imputed as mean (2*allele frequency). minor: missing dosages are imputed as minor allele homozygotes [default=best_guess]"
   ),
   make_option("--LOCO",
     type = "logical", default = TRUE,
-    help = "Whether to apply the leave-one-chromosome-out option. If TRUE, --chrom is required [default=FALSE] "
+    help = "Whether to apply the leave-one-chromosome-out option. If TRUE, --chrom is required [default=TRUE] "
   ),
   make_option("--GMMATmodelFile",
     type = "character", default = "",
@@ -134,7 +134,7 @@ option_list <- list(
   ),
   make_option("--maxMAF_in_groupTest",
     type = "character", default = "0.0001,0.001,0.01",
-    help = "Max MAF for markers tested in group test seperated by comma. e.g. 0.0001,0.001,0.01, [default=0.01]"
+    help = "Max MAF for markers tested in group test seperated by comma. e.g. 0.0001,0.001,0.01, [default=0.0001,0.001,0.01]"
   ),
   make_option("--minMAF_in_groupTest_Exclude",
     type = "character", default = NULL,
@@ -215,7 +215,7 @@ mean, p-value based on traditional score test is returned. Default value is 2."
   ),
   make_option("--is_single_in_groupTest",
     type = "logical", default = FALSE,
-    help = "Whether to output single-variant assoc test results when perform group tests. Note, single-variant assoc test results will always be output when SKAT and SKAT-O tests are conducted with --r.corr=0. This parameter should only be used when only Burden tests are condcuted with --r.corr=1, [default=TRUE]"
+    help = "Whether to output single-variant assoc test results when perform group tests. Note, single-variant assoc test results will always be output when SKAT and SKAT-O tests are conducted with --r.corr=0. This parameter should only be used when only Burden tests are condcuted with --r.corr=1, [default=FALSE]"
   ),
   make_option("--is_SKATO",
     type = "logical", default = FALSE,
@@ -227,7 +227,7 @@ mean, p-value based on traditional score test is returned. Default value is 2."
   ),
   make_option("--is_output_markerList_in_groupTest",
     type = "logical", default = FALSE,
-    help = "Whether to output the marker lists included in the set-based tests for each mask.[default=TRUE]"
+    help = "Whether to output the marker lists included in the set-based tests for each mask.[default=FALSE]"
   ),
   make_option("--is_Firth_beta",
     type = "logical", default = FALSE,
