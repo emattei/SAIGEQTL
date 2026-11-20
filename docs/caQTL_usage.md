@@ -45,7 +45,7 @@ Rscript extdata/step1_fitNULLGLMM_qtl.R \
 
 Notes on these flags:
 - `--traitType=count` is required. The default is `binary`, which fails on counts.
-- List donor covariates first in `--covarColList` and repeat them in `--sampleCovarColList`. Step 1 fails without `--sampleCovarColList`. With `--isCovariateTransform=TRUE`, a cell covariate listed before the donor covariates corrupts the donor-level design that step 2 uses.
+- Repeat the donor covariates of `--covarColList` in `--sampleCovarColList`. Step 1 fails without `--sampleCovarColList`. Step 1 moves the donor covariates to the front of the model. In versions before this change, list them first yourself: with `--isCovariateTransform=TRUE`, a cell covariate listed before the donor covariates corrupts the donor-level design that step 2 uses.
 - Categorical donor covariates can be declared in `--qCovarColList`. In versions before this change they are silently dropped from the step 2 donor-level design; with those versions, use 0/1 columns instead.
 - `--tol` is the convergence threshold, and `--tauFloor` is the level below which the donor variance is set to 0.
   - Without `--tauFloor`, the floor equals `--tol`. The default 0.02, and even 1e-3, then sets small donor variances to zero, which inflates the tests for well-covered peaks.
@@ -98,7 +98,7 @@ This gives the ACAT p-value over the window, which is the same as `SAIGEQTL::get
 | No `--sampleCovarColList` | Step 1 fails |
 | Character covariate column | Step 1 fails: `object '<name>' not found` |
 | Categorical donor covariate in `--qCovarColList`, versions before this change | Step 1 runs, but the covariate is missing from the step 2 donor-level design |
-| Cell covariate listed before donor covariates (`--isCovariateTransform=TRUE`) | Step 1 runs, but the step 2 donor-level design is wrong |
+| Cell covariate listed before donor covariates (`--isCovariateTransform=TRUE`), versions before this change | Step 1 runs, but the step 2 donor-level design is wrong |
 | Peak name with `:` or `-` | Step 1 fails: `object 'chr1' not found` |
 | All-zero peak | Step 1 reports `SUCCESS`, with the donor variance at its floor (1e-6 with `--tauFloor=1e-6`) |
 | `--tol=0.02` (default) without `--tauFloor` | Donor variances below 0.02 are set to 0 |
