@@ -533,10 +533,9 @@ if(FALSE){
       # Use intersect() for better performance than nested %in%
       sampleCovarCol_q <- intersect(sampleCovarCol, qCovarCol)
       if (length(sampleCovarCol_q) > 0) {
-        # Avoid creating temporary matrix - just get the expanded names
+        # Dummy column names (e.g. grpb), as in the model matrix; term labels (grp) match no column.
         temp_formula <- as.formula(paste0("~", paste(sampleCovarCol_q, collapse = "+")))
-        temp_terms <- terms(temp_formula, data = data)
-        sampleCovarCol_q_names <- attr(temp_terms, "term.labels")
+        sampleCovarCol_q_names <- colnames(model.matrix(temp_formula, data))[-1]
       }
     }
   }
