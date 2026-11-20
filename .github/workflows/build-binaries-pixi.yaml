@@ -214,55 +214,6 @@ jobs:
           ls -lh binaries/${{ steps.build.outputs.binary_filename }}
 
   # Commit binary to repository
-  commit-binary:
-    needs: build-linux-pixi
-    runs-on: ubuntu-latest
-    if: github.event_name == 'release'
-    
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Download binary
-        uses: actions/download-artifact@v4
-        with:
-          name: saigeqtl-${{ needs.build-linux-pixi.outputs.pkg_version }}-linux-pixi
-          path: binaries/
-
-      - name: Commit binary to repository
-        run: |
-          VERSION="${{ needs.build-linux-pixi.outputs.pkg_version }}"
-          BINARY_FILE="${{ needs.build-linux-pixi.outputs.binary_filename }}"
-          
-          echo "=== Committing Binary to Repository ==="
-          
-          # Configure git
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Add binary file
-          git add "binaries/$BINARY_FILE"
-          
-          # Check if there are changes to commit
-          if git diff --staged --quiet; then
-            echo "No changes to commit"
-          else
-            git commit \
-            -m "🤖 Add pixi-built binary for v${VERSION}" \
-            -m "Built with pixi environment:" \
-            -m "- File: ${BINARY_FILE}" \
-            -m "- Compatible: R 4.4+, GLIBC 2.28+, Linux x86_64" \
-            -m "- Optimized libraries via pixi" \
-            -m "- Install: curl -fsSL https://raw.githubusercontent.com/weizhou0/qtl/main/install_binary.R | Rscript -" \
-            -m "[skip ci]"
-            git push origin main
-            echo "✅ Binary committed to repository"
-            git push origin main
-            echo "✅ Binary committed to repository"
-          fi
-
   # Upload to GitHub Release
   upload-to-release:
     needs: build-linux-pixi
@@ -286,7 +237,7 @@ jobs:
           asset_content_type: application/gzip
 
   notification:
-    needs: [build-linux-pixi, commit-binary, upload-to-release]
+    needs: [build-linux-pixi, upload-to-release]
     runs-on: ubuntu-latest
     if: always()
     

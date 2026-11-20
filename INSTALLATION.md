@@ -8,7 +8,7 @@ SAIGEQTL is an R package for scalable and accurate expression quantitative trait
 
 | Platform | Support Level | Recommended Methods | Notes |
 |----------|---------------|-------------------|--------|
-| **Linux** | ✅ **Full Support** | All methods (Docker, Binary, Conda, Pixi, Source) | Pre-built binaries available |
+| **Linux** | ✅ **Full Support** | Docker, Conda, Pixi, Source | |
 | **macOS** | ✅ **Good Support** | Docker, Conda, Pixi, Source | No pre-built binaries (compilation required) |
 | **Windows** | ⚠️ **Limited Support** | Docker only, or WSL2 + Linux methods | Not natively supported |
 
@@ -16,7 +16,6 @@ SAIGEQTL is an R package for scalable and accurate expression quantitative trait
 
 **🐧 Linux (Recommended Platform):**
 - Full support for all installation methods
-- Pre-built binaries available for fastest installation
 - Best performance and compatibility
 
 **🍎 macOS:**
@@ -36,17 +35,6 @@ SAIGEQTL is an R package for scalable and accurate expression quantitative trait
 ```bash
 # Just need Docker - everything else is included
 docker run --rm -v $(pwd):/data weizhou0/saigeqtl:latest step1_fitNULLGLMM_qtl.R --help
-```
-
-**🥈 Easy: Binary (Linux only, no compilation):**
-```bash
-# Fast installation for Linux with pixi
-curl -fsSL https://pixi.sh/install.sh | bash && source ~/.bashrc
-git clone https://github.com/weizhou0/SAIGEQTL.git && cd SAIGEQTL
-
-# Auto-detect latest binary file
-BINARY_FILE=$(ls binaries/SAIGEQTL_*_linux-x86_64.tgz | head -n1)
-CONDA_OVERRIDE_GLIBC=2.28 pixi run R -e "install.packages('${BINARY_FILE}', repos=NULL, type='source'); library(SAIGEQTL)"
 ```
 
 **🥉 Moderate: Conda/Bioconda (Linux, macOS, managed environment):**
@@ -117,88 +105,13 @@ docker run --rm -it -v $(pwd):/data weizhou0/saigeqtl:latest \
 - **Size:** ~2GB (includes R, dependencies, and tools)
 - **Updates:** Automatically built from latest code
 
-### Method 2: Binary Installation (🥈 Easy - Linux Only)
+### Method 2: Binary Installation
 
-**Advantages:**
-- ✅ **Fastest installation (no compilation required)**
-- ✅ **No compiler or build tools needed**
-- ✅ **Avoids common compilation errors**
-- ✅ Pre-built optimized binaries
-- ✅ Consistent environment
-- ✅ Works on most modern Linux systems
-
-**System Requirements:**
-- Linux x86_64
-- R 4.4+
-- GLIBC 2.28+ (CentOS 7+, Ubuntu 18.04+, most modern systems)
-- Pixi package manager
-
-**Installation:**
-```bash
-# 1. Install pixi if not available
-curl -fsSL https://pixi.sh/install.sh | bash
-source ~/.bashrc  # Restart shell or reload environment
-
-# 2. Clone repository
-git clone https://github.com/weizhou0/SAIGEQTL.git
-cd SAIGEQTL
-
-# 3. Install from pre-built binary (auto-detect latest version)
-BINARY_FILE=$(ls binaries/SAIGEQTL_*_linux-x86_64.tgz | head -n1)
-echo "Installing: $BINARY_FILE"
-
-CONDA_OVERRIDE_GLIBC=2.28 pixi run R -e "
-install.packages('${BINARY_FILE}', repos = NULL, type = 'source')
-library(SAIGEQTL)
-cat('✓ SAIGEQTL', as.character(packageVersion('SAIGEQTL')), 'installed successfully\n')
-"
-```
-
-**⏱️ Expected Installation Progress:**
-
-The pixi installation may take 10-20 minutes on first run as it downloads ~262 packages:
+Pre-built binaries are no longer kept in the repository. When a GitHub release has a Linux `.tgz` attached, download it and install it with:
 
 ```bash
-⠈ preparing packages   [━━━━━━━━━━━━━━━━━━━╾] 261/262 libboost-headers
-⠁ preparing packages   [━━━━━━━━━━━━━━━━━━━╾] 261/262 libboost-headers  
-⠉ preparing packages   [━━━━━━━━━━━━━━━━━━━╾] 261/262 libboost-headers
-⠙ preparing packages   [━━━━━━━━━━━━━━━━━━━╾] 261/262 libboost-headers
-▪ preparing packages   [━━━━━━━━━━━━━━━━━━━━] 262/262
+CONDA_OVERRIDE_GLIBC=2.28 pixi run R -e "install.packages('SAIGEQTL_<version>_linux-x86_64.tgz', repos = NULL, type = 'source')"
 ```
-
-**✅ What this means:**
-- **First time only**: Pixi downloads R + all statistical dependencies 
-- **Normal progress**: The bar may stay at 261/262 for several minutes
-- **Be patient**: Once complete, you'll have a fully isolated R environment with SAIGEQTL ready to use
-- **Future runs**: Subsequent `pixi run` commands will be very fast (cached)
-
-**Alternative: One-liner for Binary Installation**
-```bash
-# One-liner that clones repo and installs latest binary
-git clone https://github.com/weizhou0/SAIGEQTL.git && cd SAIGEQTL && \
-curl -fsSL https://pixi.sh/install.sh | bash && source ~/.bashrc && \
-BINARY_FILE=$(ls binaries/SAIGEQTL_*_linux-x86_64.tgz | head -n1) && \
-CONDA_OVERRIDE_GLIBC=2.28 pixi run R -e "install.packages('${BINARY_FILE}', repos=NULL, type='source')"
-```
-
-**Custom Installation Path:**
-```bash
-# Install to specific directory (for HPC, shared systems)
-Rscript scripts/install_binary.R /path/to/your/R/library
-
-# Example: Install to home directory
-Rscript scripts/install_binary.R ~/R-packages/
-
-# Then use with --library option in analysis:
-step1_fitNULLGLMM_qtl.R --library='/path/to/your/R/library' [other_options]
-step2_tests_qtl.R --library='/path/to/your/R/library' [other_options]
-step3_gene_pvalue_qtl.R --library='/path/to/your/R/library' [other_options]
-```
-
-**Version Update Notes:**
-- The auto-detection method (`ls binaries/SAIGEQTL_*_linux-x86_64.tgz`) automatically finds any version
-- No need to update documentation when binary versions change
-- Always installs the latest available binary in the repository
 
 ### Method 3: Conda/Bioconda Installation (🥉 Easy - Any System)
 
@@ -398,12 +311,6 @@ wsl --install
 # 2. Open WSL2 terminal and use any Linux installation method:
 # For example, using conda:
 conda install -c conda-forge -c bioconda 'aryarm::r-saigeqtl'
-
-# Or binary installation:
-curl -fsSL https://pixi.sh/install.sh | bash && source ~/.bashrc
-git clone https://github.com/weizhou0/SAIGEQTL.git && cd SAIGEQTL
-BINARY_FILE=$(ls binaries/SAIGEQTL_*_linux-x86_64.tgz | head -n1)
-CONDA_OVERRIDE_GLIBC=2.28 pixi run R -e "install.packages('${BINARY_FILE}', repos=NULL, type='source')"
 ```
 
 **Windows Notes:**
@@ -550,8 +457,6 @@ R -e "remotes::install_github('weizhou0/qtl', lib = '~/R-library')"
 **4. Binary installation fails:**
 - Ensure you have R 4.4+: `R --version`
 - Check GLIBC version: `ldd --version`
-- **Check binary file exists**: `ls binaries/SAIGEQTL_*_linux-x86_64.tgz`
-- **For version updates**: The auto-detection should find the latest binary automatically
 - Use Method 1 (Docker) or Method 3 (Conda) as fallback
 
 **5. All installation methods fail:**
@@ -592,15 +497,6 @@ conda install -c conda-forge -c bioconda 'aryarm::r-saigeqtl'
 
 # Standard installation (source compilation)
 R -e "if (!require('remotes')) install.packages('remotes'); remotes::install_github('weizhou0/qtl')"
-```
-
-### Linux Only:
-```bash
-# Binary installation (fastest for Linux)
-git clone https://github.com/weizhou0/SAIGEQTL.git && cd SAIGEQTL
-curl -fsSL https://pixi.sh/install.sh | bash && source ~/.bashrc
-BINARY_FILE=$(ls binaries/SAIGEQTL_*_linux-x86_64.tgz | head -n1)
-CONDA_OVERRIDE_GLIBC=2.28 pixi run R -e "install.packages('${BINARY_FILE}', repos=NULL, type='source'); library(SAIGEQTL)"
 ```
 
 ### Windows Only:
