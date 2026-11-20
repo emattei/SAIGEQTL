@@ -684,7 +684,7 @@ if (!fit_success && !is.null(initial_error)) {
     status = "FAILED", 
     details = paste("Initial model fitting failed with error:", initial_error)
   )
-  check_convergence_and_write_status(opt$outputPrefix, args_list, package_version, final_status)
+  status_result <- check_convergence_and_write_status(opt$outputPrefix, args_list, package_version, final_status)
 } else {
   # Normal status checking
   status_result <- check_convergence_and_write_status(opt$outputPrefix, args_list, package_version, final_check_result)
@@ -709,3 +709,6 @@ if (BLASctl_installed) {
   # Restore originally configured BLAS thread count
   blas_set_num_threads(original_num_threads)
 }
+
+# Schedulers and workflow managers see a failed fit only through the exit status.
+if (status_result$convergence_status != "SUCCESS") quit(save = "no", status = 1)

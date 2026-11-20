@@ -52,7 +52,7 @@ Notes on these flags:
   - With a version that lacks `--tauFloor`, use `--tol=0.00001` instead. It was validated for donors with up to about 800 expected counts per peak, but more sparse peaks then fall back or fail (methods).
 - `--useGRMtoFitNULL` defaults to `TRUE`, so set it to `FALSE` explicitly. For related donors, add a sparse GRM (`--useSparseGRMtoFitNULL=TRUE` with `--sparseGRMFile` and `--sparseGRMSampleIDFile`).
 
-**Check the outcome.** The script exits with status 0 even when the fit failed. The outcome is the line `Convergence Status: SUCCESS` or `FAILED` in `<outputPrefix>.status.txt`. If the full model fails or does not converge, the script refits with the covariates moved into the offset. Its log then contains `Retrying with all covariates as offset` or `Trying with all covariates as offset`. Record this flag and report calibration and results separately for such peaks.
+**Check the outcome.** The script exits with status 1 when the fit failed; versions before this change exit with status 0 either way. The outcome is also the line `Convergence Status: SUCCESS` or `FAILED` in `<outputPrefix>.status.txt`. If the full model fails or does not converge, the script refits with the covariates moved into the offset. Its log then contains `Retrying with all covariates as offset` or `Trying with all covariates as offset`. Record this flag and report calibration and results separately for such peaks.
 
 **Outputs.** The model `<outputPrefix>.rda` stores several vectors of length equal to the number of cells. Delete it after step 2 when running many peaks.
 
@@ -106,4 +106,4 @@ This gives the ACAT p-value over the window, which is the same as `SAIGEQTL::get
 | Step 2 `--chrom` differs from the `.bim` code | Step 2 stops with an error and writes only the header |
 | Sparse peak whose counts all fall in some levels of a 0/1 donor covariate, such as batch | Step 1 reports `SUCCESS`, but the fit diverges: in a 12-count simulated peak the fitted values summed to 1.6e17. Step 2 then gives p = 0 for every variant. Check that the fitted values sum to the observed counts. |
 
-In every step 1 failure above, the script still exits with status 0.
+In every step 1 failure above, the script exits with status 1 (status 0 in versions before this change).
