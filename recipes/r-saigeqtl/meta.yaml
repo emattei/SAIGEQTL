@@ -62,7 +62,6 @@ requirements:
     - r-vctrs
     - r-furrr
     - r-rcppnumerical
-    - r-nlme
     - r-mass
   run:
     - r-base

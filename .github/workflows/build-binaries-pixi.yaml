@@ -225,6 +225,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: saigeqtl-${{ needs.build-linux-pixi.outputs.pkg_version }}-linux-pixi
+          path: binaries/
 
       - name: Upload to GitHub Release
         uses: actions/upload-release-asset@v1

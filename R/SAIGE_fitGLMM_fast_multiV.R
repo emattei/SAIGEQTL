@@ -624,7 +624,6 @@ fitNULLGLMM_multiV <- function(plinkFile = "",
     rm(mmat)
     rm(mmat_nomissing)
     gc()
-    isSparseGRMIdentity <- FALSE
     if (useGRMtoFitNULL) {
       indicatorGenoSamplesWithPheno <- (sampleListwithGeno$IndexGeno %in% dataMerge_sort$IndexGeno)
 
@@ -809,13 +808,7 @@ fitNULLGLMM_multiV <- function(plinkFile = "",
 
       start_6 <- proc.time()
   if (useSparseGRMtoFitNULL | useSparseGRMforVarRatio) {
-    if (!isSparseGRMIdentity) {
-      getsubGRM_orig(sparseGRMFile, sparseGRMSampleIDFile, relatednessCutoff, dataMerge_sort$IID)
-    } else {
-      print(length(dataMerge_sort$IIDgeno))
-      sparseGRM <- Matrix:::sparseMatrix(i = as.vector(1:nrow(data.new)), j = as.vector(1:nrow(data.new)), x = rep(1, nrow(data.new)), symmetric = TRUE)
-      setupSparseGRM_new(sparseGRM)
-    }
+    getsubGRM_orig(sparseGRMFile, sparseGRMSampleIDFile, relatednessCutoff, dataMerge_sort$IID)
     # getsubGRM(sparseGRMFile, sparseGRMSampleIDFile, relatednessCutoff, dataMerge_sort$IID, dataMerge_sort$longlVar)
     # m4 = gen_sp_v2(sparseGRMtest)
     # cat("Setting up sparse GRM using ", sparseGRMFile, " and ", sparseGRMSampleIDFile, "\n")
@@ -1152,7 +1145,7 @@ print(start_7 - start_0)
         chromosomeEndIndexVec = chromosomeEndIndexVec,
         traceCVcutoff = traceCVcutoff, isCovariateTransform = isCovariateTransform,
         isDiagofKinSetAsOne = isDiagofKinSetAsOne,
-        isLowMemLOCO = isLowMemLOCO, covarianceIdxMat = covarianceIdxMat, isStoreSigma = isStoreSigma, useSparseGRMtoFitNULL = useSparseGRMtoFitNULL, useGRMtoFitNULL = useGRMtoFitNULL, isSparseGRMIdentity = isSparseGRMIdentity, tauFloor = tauFloor
+        isLowMemLOCO = isLowMemLOCO, covarianceIdxMat = covarianceIdxMat, isStoreSigma = isStoreSigma, useSparseGRMtoFitNULL = useSparseGRMtoFitNULL, useGRMtoFitNULL = useGRMtoFitNULL, tauFloor = tauFloor
       ))
       modglmm$obj.glm.null$model <- as.data.frame(modglmm$obj.glm.null$model)
     } else {
@@ -1167,7 +1160,7 @@ print(start_7 - start_0)
         chromosomeEndIndexVec = chromosomeEndIndexVec,
         traceCVcutoff = traceCVcutoff, isCovariateTransform = isCovariateTransform,
         isDiagofKinSetAsOne = isDiagofKinSetAsOne,
-        isLowMemLOCO = isLowMemLOCO, covarianceIdxMat = covarianceIdxMat, isStoreSigma = isStoreSigma, useSparseGRMtoFitNULL = useSparseGRMtoFitNULL, useGRMtoFitNULL = useGRMtoFitNULL, isSparseGRMIdentity = isSparseGRMIdentity
+        isLowMemLOCO = isLowMemLOCO, covarianceIdxMat = covarianceIdxMat, isStoreSigma = isStoreSigma, useSparseGRMtoFitNULL = useSparseGRMtoFitNULL, useGRMtoFitNULL = useGRMtoFitNULL
       ))
 
       data.new$y <- modglmm$y
@@ -2133,7 +2126,7 @@ extractVarianceRatio_multiV <- function(obj.glmm.null,
 
 
 # Fits the null glmm
-glmmkin.ai_PCG_Rcpp_multiV <- function(bedFile, bimFile, famFile, Xorig, isCovariateOffset, fit0, tau = c(0, 0), fixtau = c(0, 0), maxiter = 20, tol = 0.02, verbose = TRUE, nrun = 30, tolPCG = 1e-5, maxiterPCG = 500, subPheno, indicatorGenoSamplesWithPheno, obj.noK, out.transform, tauInit, memoryChunk, LOCO, chromosomeStartIndexVec, chromosomeEndIndexVec, traceCVcutoff, isCovariateTransform, isDiagofKinSetAsOne, isLowMemLOCO, covarianceIdxMat = NULL, isStoreSigma = FALSE, useSparseGRMtoFitNULL = TRUE, useGRMtoFitNULL = TRUE, isSparseGRMIdentity = FALSE, tauFloor = tol) {
+glmmkin.ai_PCG_Rcpp_multiV <- function(bedFile, bimFile, famFile, Xorig, isCovariateOffset, fit0, tau = c(0, 0), fixtau = c(0, 0), maxiter = 20, tol = 0.02, verbose = TRUE, nrun = 30, tolPCG = 1e-5, maxiterPCG = 500, subPheno, indicatorGenoSamplesWithPheno, obj.noK, out.transform, tauInit, memoryChunk, LOCO, chromosomeStartIndexVec, chromosomeEndIndexVec, traceCVcutoff, isCovariateTransform, isDiagofKinSetAsOne, isLowMemLOCO, covarianceIdxMat = NULL, isStoreSigma = FALSE, useSparseGRMtoFitNULL = TRUE, useGRMtoFitNULL = TRUE, tauFloor = tol) {
   # Fits the null generalized linear mixed model for a poisson, binomial, and gaussian
   # Args:
   #  genofile: string. Plink file for the M1 markers to be used to construct the genetic relationship matrix
@@ -2296,10 +2289,6 @@ glmmkin.ai_PCG_Rcpp_multiV <- function(bedFile, bimFile, famFile, Xorig, isCovar
   #  gen_sp_Sigma_multiV(W, tau)
   # }
 
-  if (isSparseGRMIdentity) {
-    tau[2] <- 0
-  }
-
   # print("Here isStoreSigma")
   re.coef <- Get_Coef_multiV(y, X, tau, family, alpha0, eta0, offset, verbose = verbose, maxiterPCG = maxiterPCG, tolPCG = tolPCG, maxiter = maxiter, LOCO = FALSE, var_weights = var_weights)
 
@@ -2334,17 +2323,7 @@ glmmkin.ai_PCG_Rcpp_multiV <- function(bedFile, bimFile, famFile, Xorig, isCovar
     print(tau)
   }
 
-  maxiter_in <- maxiter
-  if (isSparseGRMIdentity) {
-    tau[2] <- 0
-    maxiter_in <- 0
-    alpha <- re.coef$alpha
-    tau0 <- tau
-    cat("tau0_v1: ", tau0, "\n")
-    eta0 <- eta
-  }
-
-  for (i in seq_len(maxiter_in)) {
+  for (i in seq_len(maxiter)) {
     # W = sqrtW^2
 
     if (verbose) cat("\nIteration ", i, tau, ":\n")
