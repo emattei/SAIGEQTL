@@ -1,7 +1,7 @@
 # Runs step 1 and step 2 on the bundled regression data and checks the numbers.
 # Reference values come from this code at the commit that added the test;
 # without a GRM they do not depend on the variance-ratio markers.
-# isStoreSigma = TRUE as in the step 1 script; the function default (FALSE) makes step 2 fail here.
+# isStoreSigma = TRUE as in the step 1 script; step 2 fails on a model fitted without it.
 
 input <- file.path("..", "..", "extdata", "input")
 
