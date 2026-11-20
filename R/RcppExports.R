@@ -129,6 +129,10 @@ openOutfile_single <- function(t_traitType, t_isImputation, isappend, t_isMoreOu
     .Call('_SAIGEQTL_openOutfile_single', PACKAGE = 'SAIGEQTL', t_traitType, t_isImputation, isappend, t_isMoreOutput, t_isGbyE)
 }
 
+closeOutfiles <- function() {
+    invisible(.Call('_SAIGEQTL_closeOutfiles', PACKAGE = 'SAIGEQTL'))
+}
+
 set_flagSparseGRM_cur_SAIGE <- function(t_flagSparseGRM_cur) {
     invisible(.Call('_SAIGEQTL_set_flagSparseGRM_cur_SAIGE', PACKAGE = 'SAIGEQTL', t_flagSparseGRM_cur))
 }

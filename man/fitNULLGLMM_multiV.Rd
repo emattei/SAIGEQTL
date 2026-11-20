@@ -22,6 +22,7 @@ fitNULLGLMM_multiV(
   varWeightsCol = NULL,
   longlCol = "",
   sampleIDColinphenoFile = "",
+  cellIDColinphenoFile = "",
   tol = 0.02,
   maxiter = 20,
   tolPCG = 1e-05,
@@ -66,7 +67,15 @@ fitNULLGLMM_multiV(
   nrun = 30,
   VmatFilelist = "",
   VmatSampleFilelist = "",
-  useGRMtoFitNULL = TRUE
+  VcellmatFilelist = "",
+  VcellmatSampleFilelist = "",
+  useGRMtoFitNULL = TRUE,
+  isStoreSigma = FALSE,
+  isShrinkModelOutput = FALSE,
+  isExportResiduals = FALSE,
+  varRatioBatchSize = 10,
+  solverMethod = "auto",
+  tauFloor = tol
 )
 }
 \arguments{
@@ -87,6 +96,8 @@ fitNULLGLMM_multiV(
 \item{eCovarCol}{vector of characters. Covariates of environmental factors/cell context to be used in the null model. All covariates listed in eCovarCol must be also in covarColList,  e,g c("cellType").}
 
 \item{sampleIDColinphenoFile}{character. Column name for the sample IDs in the phenotype file e.g. "IID".}
+
+\item{cellIDColinphenoFile}{character. Column name for the cell IDs in the phenotype file e.g. "barcode".}
 
 \item{tol}{numeric. The tolerance for fitting the null model to converge. By default, 0.02.}
 
@@ -159,6 +170,18 @@ fitNULLGLMM_multiV(
 \item{MaleOnly}{logical. Whether to run Step 1 for males only. If TRUE, sexCol and MaleCode need to be specified. By default, FALSE}
 
 \item{isCovariateOffset}{logical. Whether to estimate fixed effect coeffciets. By default, FALSE.}
+
+\item{isStoreSigma}{logical. Whether to store sigma matrix. By default, FALSE. If number of individuals is greater than 10,000, this option may use large memory}
+
+\item{isShrinkModelOutput}{logical. remove unnecessary objects for step2 from the model output. By default, FALSE.}
+
+\item{isExportResiduals}{logical. export a residual vector. By default, FALSE.}
+
+\item{varRatioBatchSize}{integer. Batch size for variance ratio estimation. Higher values use more memory but may be faster. Set to 1 for sequential processing (low memory), or >1 for batch processing. By default, 10.}
+
+\item{solverMethod}{character. Solver method for fitting null model: 'auto' (automatic selection), 'pcg' (Preconditioned Conjugate Gradient), 'smw' (Sherman-Morrison-Woodbury). When 'auto': SMW for repeated cells without GRM, PCG when GRM is provided or no repeated cells. By default, 'auto'.}
+
+\item{tauFloor}{numeric. Variance components below tauFloor are set to 0 while fitting the null model. Not used for count_nb. By default, equal to tol.}
 }
 \value{
 a file ended with .rda that contains the glmm model information, a file ended with .varianceRatio.txt that contains the variance ratio values, and a file ended with #markers.SPAOut.txt that contains the SPAGMMAT tests results for the markers used for estimating the variance ratio.

@@ -173,6 +173,7 @@ setup_library_path() {
 export SAIGEQTL_PACKAGE_ROOT="${SAIGEQTL_PACKAGE_ROOT:-$PACKAGE_ROOT}"
 export SAIGEQTL_PIXI_MANIFEST="${SAIGEQTL_PIXI_MANIFEST:-$PACKAGE_ROOT/pixi.toml}"
 export SAIGEQTL_TEST_DIR="${SAIGEQTL_TEST_DIR:-test_output}"
+mkdir -p "$SAIGEQTL_TEST_DIR"
 export SAIGEQTL_EXTDATA_DIR="${SAIGEQTL_EXTDATA_DIR:-extdata}"
 
 # Set expected output directory - prefer extdata/expected_output if it exists, fall back to expected_output
