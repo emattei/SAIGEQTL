@@ -64,7 +64,7 @@ $$\max_k \frac{|\tau_k - \tau_k^{\mathrm{old}}|}{|\tau_k| + |\tau_k^{\mathrm{old
 - After every update, any $\tau_k < \epsilon_f$ is set to 0 (`src/Main.cpp:4940-4961`).
 - An iteration that sets $\tau_I = 0$ ends the fit with $\hat\tau_I = 0$ (`R/SAIGE_fitGLMM_fast_multiV.R:2450`).
 
-The floor therefore applies to intermediate iterates as well as to the final estimate. In the two-component model, step-halving also keeps $\tau_I$ inside $(10^{-6}, 1 - 10^{-6})$ (`src/Main.cpp:4948-4958`). So $\hat\tau_I$ lies in $\lbrace 0\rbrace \cup [\epsilon_f, 1)$ when $\epsilon_f > 10^{-6}$, and in $[10^{-6}, 1)$ otherwise.
+The floor therefore applies to intermediate iterates as well as to the final estimate. In the two-component model, step-halving also keeps $\tau_I$ above $10^{-6}$ (`src/Main.cpp`, `fitglmmaiRPCG_multiV`). So $\hat\tau_I$ lies in $\lbrace 0\rbrace \cup [\epsilon_f, \infty)$ when $\epsilon_f > 10^{-6}$, and in $[10^{-6}, \infty)$ otherwise. Versions before this change also capped $\tau_I$ below 1, so a larger donor variance was reported as about 0.9999 with the fit marked converged.
 
 **Why the floor matters for accessibility.** Under the model, the donor sum of residuals $r_i = \sum_j(y_{ij} - \mu_{ij})$ has variance of about $\mu_{i\cdot}(1 + \tau_I\mu_{i\cdot})$. If $\hat\tau_I = 0$ while $\tau_I > 0$, the step 2 variance below drops the factor $1 + \tau_I\mu_{i\cdot}$, and the test statistic is inflated by about that factor. Deep donors (many cells, accessible peaks) can have large $\mu_{i\cdot}$, so even a small $\tau_I$ matters. $\epsilon_f$ must therefore satisfy $\epsilon_f\max_i\hat\mu_{i\cdot} \ll 1$. The default ($\epsilon_f$ = `--tol` = 0.02) violates it once donors have more than a few expected counts ($\epsilon_f\mu_{i\cdot} = 0.2$ at $\mu_{i\cdot} = 10$). The condition is necessary but not sufficient: because the floor acts on the iterates, it can zero a true $\tau_I$ several times larger than $\epsilon_f$. Results from the deep-donor simulation ($\mu_{i\cdot} \approx 810$; 20 peaks per row, one genotype permutation):
 
@@ -243,7 +243,7 @@ The confidence intervals come from a bootstrap over peaks. They are conditional 
 ## Assumptions and limitations
 
 - **No cell-level overdispersion.** If counts are overdispersed within donors, $\mathrm{Var}(T)$ is underestimated. A diagnostic is the Pearson statistic $\sum_{ij}(y_{ij} - \hat\mu_{ij})^2/\hat\mu_{ij}$ divided by $N - p$, which should be near 1.
-- **Bounds on $\hat\tau_I$.** The floor $\epsilon_f$ and the cap below 1 both underestimate $\mathrm{Var}(T)$ when the true $\tau_I$ lies outside $[\epsilon_f, 1)$; see Step 1.
+- **Floor on $\hat\tau_I$.** The floor $\epsilon_f$ underestimates $\mathrm{Var}(T)$ when the true $\tau_I$ lies below $\epsilon_f$; see Step 1. Versions before this change also capped $\hat\tau_I$ below 1, which underestimates $\mathrm{Var}(T)$ for larger donor variances.
 - **PQL bias.** PQL tends to underestimate variance components for sparse counts (Breslow & Lin 1995). Without cell-level covariates, the fit depends on the data only through donor totals (see the information-content section), so the bias is governed by $\mu_{i\cdot}$ rather than by per-cell counts.
 - **Few donors with counts.** Peaks with few donors having nonzero counts carry little information about $\beta$. Dropping them before step 1 saves compute; calibration does not require it.
 - **SE before SPA.** SE is computed before the SPA, so for SPA-adjusted variants $\hat\beta/\mathrm{SE}$ does not reproduce the reported p-value.
