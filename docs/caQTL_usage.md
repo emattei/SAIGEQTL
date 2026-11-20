@@ -96,6 +96,7 @@ This gives the ACAT p-value over the window, which is the same as `SAIGEQTL::get
 |---|---|
 | `--traitType` omitted | Step 1 fails: `y values must be 0 <= y <= 1` |
 | No `--sampleCovarColList` | Step 1 fails |
+| One row per donor (pseudobulk), no GRM | Step 1 fails: `One row per donor is not supported without a GRM` |
 | Character covariate column | Step 1 fails: `object '<name>' not found` |
 | Categorical covariate in `--qCovarColList` | Step 1 runs, but the covariate is missing from the step 2 donor-level design |
 | Cell covariate listed before donor covariates (`--isCovariateTransform=TRUE`) | Step 1 runs, but the step 2 donor-level design is wrong |

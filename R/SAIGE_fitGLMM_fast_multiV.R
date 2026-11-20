@@ -675,11 +675,8 @@ if(FALSE){
       }
     } else {
       if (!useGRMtoFitNULL) {
-        # stop("No duplicated IDs are observed in the phenotype file, so GRM must be used to fit the null model. Please set useGRMtoFitNULL=TRUE\n")
-        cat("No duplicated IDs are observed in the phenotype file, so the identity matrix will be used as a sparse GRM will be used to fit the null model\n")
-        isSparseGRMIdentity <- TRUE
-        useSparseGRMtoFitNULL <- TRUE
-        useGRMtoFitNULL <- TRUE
+        # The identity-GRM fit (plain GLM) crashes in step 1 and its model crashes step 2.
+        stop("ERROR! One row per donor is not supported without a GRM: no sample ID is repeated in the phenotype file. Use cell-level data.\n")
       }
     }
     set_useGRMtoFitNULL(useGRMtoFitNULL)
