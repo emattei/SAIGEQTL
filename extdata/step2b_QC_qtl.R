@@ -62,11 +62,9 @@ get_lambda_from_step2 <- function(file) {
   pvals <- pvals[is.finite(pvals) & pvals > 0 & pvals <= 1]
 
   if (length(pvals) == 0) return(NA_real_)
-  chisq_obs <- qchisq(1 - pvals, df = 1)
-  obs_med <- median(chisq_obs, na.rm = TRUE)
-  exp_med <- qchisq(0.9, df = 1)
-  lambda <- obs_med / exp_med
-  lambda
+  # 90th-percentile lambda (reported as lambda_0.9): about 1 under the null.
+  chisq_obs <- qchisq(pvals, df = 1, lower.tail = FALSE)
+  unname(quantile(chisq_obs, 0.9) / qchisq(0.9, df = 1))
 }
 
 # =========================
