@@ -334,47 +334,6 @@ setGenoInput <- function(bgenFile = "",
     anyInclude <- TRUE
   }
 
-  if (FALSE) {
-    if (!is.null(idstoExcludeFile)) {
-      if (anyInclude) {
-        stop("We currently do not support both 'IncludeFile' and 'ExcludeFile' at the same time.")
-      }
-      IDsToExclude <- data.table::fread(idstoExcludeFile, header = F, colClasses = c("character"))
-      if (ncol(IDsToExclude) != 1) {
-        stop("idstoExcludeFile should only include one column.")
-      }
-      IDsToExclude <- IDsToExclude[, 1]
-
-      posRows <- which(markerInfo$ID %in% IDsToExclude)
-      if (length(posRows) != 0) {
-        markersExclude <- c(markersExclude, markerInfo$ID[posRows])
-      }
-      anyExclude <- TRUE
-    }
-
-    if (!is.null(rangestoExcludeFile)) {
-      if (anyInclude) {
-        stop("We currently do not support both 'IncludeFile' and 'ExcludeFile' at the same time.")
-      }
-      RangesToExclude <- data.table::fread(rangestoExcludeFile, header = F, colClasses = c("character", "numeric", "numeric"))
-      if (ncol(RangesToExclude) != 3) {
-        stop("rangestoExcludeFile should only include three columns.")
-      }
-
-      colnames(RangesToExclude) <- c("CHROM", "START", "END")
-
-      for (i in 1:nrow(RangesToExclude)) {
-        CHROM1 <- RangesToExclude$CHROM[i]
-        START <- RangesToExclude$START[i]
-        END <- RangesToExclude$END[i]
-        posRows <- with(markerInfo, which(CHROM == CHROM1 & POS >= START & POS <= END))
-        if (length(posRows) != 0) {
-          markersExclude <- c(markersExclude, markerInfo$ID[posRows])
-        }
-      }
-      anyExclude <- TRUE
-    }
-  }
 
   markersInclude <- unique(markersInclude)
   #  markersExclude = unique(markersExclude)
