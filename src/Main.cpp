@@ -3745,6 +3745,15 @@ bool openOutfile_single(std::string t_traitType, bool t_isImputation, bool isapp
      return(isopen);
 }
 
+// [[Rcpp::export]]
+void closeOutfiles(){
+  // Flush and forget the output streams, so a later run in the same session writes to its own files.
+  for (auto * v : {&OutFile_single_vec, &OutFile_vec, &OutFile_singleInGroup_vec, &OutFile_singleInGroup_temp_vec}) {
+    for (auto & f : *v) f.close();
+    v->clear();
+  }
+}
+
 
 void writeOutfile_single(bool t_isMoreOutput,
 			bool t_isImputation,

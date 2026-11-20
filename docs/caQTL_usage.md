@@ -88,7 +88,7 @@ This gives the ACAT p-value over the window, which is the same as `SAIGEQTL::get
 - Starting R and loading the package dominate the run time of small fits, so run many peaks per job.
 - When jobs run in parallel on one machine, set `OPENBLAS_NUM_THREADS=1` and `OMP_NUM_THREADS=1`.
 - Run step 2 once per peak, or as a multi-trait run (`--GMMATmodel_varianceRatio_multiTraits_File`) over nearby peaks followed by filtering each peak's window. The multi-trait run gave results identical to per-peak runs in our tests without a GRM. With a sparse GRM, use one peak per run.
-- Do not call the step 2 function twice in one R session. Its output streams stay open until the process exits, so later results are written to the first file.
+- In versions before this change, do not call the step 2 function twice in one R session. Its output streams stay open until the process exits, so later results are written to the first file.
 
 ## Pitfalls reproduced
 
