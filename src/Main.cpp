@@ -4953,16 +4953,15 @@ int nrun, int maxiterPCG, float tolPCG, float tol, float traceCVcutoff, bool LOC
                         tauVec = tau0 + step*Dtau_k1;
                         tauVec.elem( arma::find(tauVec < tol && tau0 < tol) ).zeros();
                 } // end while
-                // For the common two-component model with fixed residual variance (tau[0]=1),
-                // keep random-effect variance inside the same admissible range used in Step 1 checks.
+                // Two-component model with fixed residual variance (tau[0]=1): keep the random-effect variance positive.
+                // No upper bound: a donor variance above 1 on the log scale is valid (e.g. overdispersed ATAC counts).
                 if(tauVec.n_elem == 2 && fixtauVec.n_elem == 2 && fixtauVec(0) == 1 && fixtauVec(1) == 0){
                         const float tau_lower = 1e-6f;
-                        const float tau_upper = 1.0f - 1e-6f;
-                        while((tauVec(1) <= tau_lower || tauVec(1) >= tau_upper) && step > 1e-8f){
+                        while(tauVec(1) <= tau_lower && step > 1e-8f){
                                 step = step * 0.5f;
                                 tauVec = tau0 + step * Dtau_k1;
                         }
-                        tauVec(1) = std::min(std::max(tauVec(1), tau_lower), tau_upper);
+                        tauVec(1) = std::max(tauVec(1), tau_lower);
                 }
                 tauVec.elem( arma::find(tauVec < tol) ).zeros();
         }else{
