@@ -1308,7 +1308,8 @@ print(start_7 - start_0)
       # }
     }
     # }
-    save(modglmm, file = modelOut)
+    # Only the LOCO variance-ratio step reloads this; the final fastSave writes the model otherwise.
+    if (LOCO) save(modglmm, file = modelOut)
     tau <- modglmm$theta
     alpha0 <- modglmm$coefficients
 
