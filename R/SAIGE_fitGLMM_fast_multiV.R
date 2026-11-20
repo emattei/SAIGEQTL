@@ -418,6 +418,17 @@ fitNULLGLMM_multiV <- function(plinkFile = "",
       }
     }
 
+    # Formulas are built by pasting names, so a name like chr1-100-200 would parse as arithmetic.
+    badNames <- setdiff(c(phenoCol, covarColList), make.names(c(phenoCol, covarColList)))
+    if (length(badNames) > 0) {
+      stop("ERROR! phenoCol and covariate names must be valid R names (letters, digits, '.' or '_'): ", paste(badNames, collapse = ", "), "\n")
+    }
+    # A non-numeric covariate would silently become one dummy column per distinct value.
+    nonNumeric <- Filter(function(v) !(is.numeric(data[, v]) || is.logical(data[, v])), c(phenoCol, setdiff(covarColList, qCovarCol)))
+    if (length(nonNumeric) > 0) {
+      stop("ERROR! non-numeric phenotype or covariates (list categorical ones in qCovarCol): ", paste(nonNumeric, collapse = ", "), "\n")
+    }
+
     if (length(eCovarCol) > 0) {
       cat(eCovarCol, "are environmental covariates\n")
       if (!all(eCovarCol %in% covarColList)) {
