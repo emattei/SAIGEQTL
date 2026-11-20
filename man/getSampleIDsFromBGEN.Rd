@@ -18,9 +18,9 @@ Extract sample identifiers from BGEN file (for BGEN v1.2)
 }
 \examples{
 
-BGENFile = system.file("extdata", "example_bgen_1.2_8bits.bgen", package = "SAIGE")
+BGENFile <- system.file("extdata", "example_bgen_1.2_8bits.bgen", package = "SAIGE")
 getSampleIDsFromBGEN(BGENFile)
 
-BGENFile = system.file("extdata", "example_bgen_1.2_8bits.bgen", package = "SAIGE")
+BGENFile <- system.file("extdata", "example_bgen_1.2_8bits.bgen", package = "SAIGE")
 getSampleIDsFromBGEN(BGENFile)
 }

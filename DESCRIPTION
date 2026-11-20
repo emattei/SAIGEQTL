@@ -51,4 +51,4 @@ biocViews: GeneExpression, GeneticVariability, Genetics, Transcriptomics,
     SingleCell, Regression
 Encoding: UTF-8
 NeedsCompilation: yes
-RoxygenNote: 7.1.2
+RoxygenNote: 7.3.3
