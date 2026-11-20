@@ -1,3 +1,4 @@
 thirdParty/cget
 ^\.github$
 ^docs$
+^\.pixi$

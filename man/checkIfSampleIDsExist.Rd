@@ -18,9 +18,9 @@ Check if sample identifiers are stored in a BGEN file (for BGEN v1.2)
 }
 \examples{
 
-BGENFile = system.file("extdata", "example_bgen_1.2_8bits.bgen", package = "SAIGE")
+BGENFile <- system.file("extdata", "example_bgen_1.2_8bits.bgen", package = "SAIGE")
 checkIfSampleIDsExist(BGENFile)
 
-BGENFile = system.file("extdata", "example_bgen_1.2_8bits.bgen", package = "SAIGE")
+BGENFile <- system.file("extdata", "example_bgen_1.2_8bits.bgen", package = "SAIGE")
 checkIfSampleIDsExist(BGENFile)
 }

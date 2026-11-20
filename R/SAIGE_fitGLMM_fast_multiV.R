@@ -46,7 +46,7 @@
 #' @param MaleCode character. Values in the column for sex (sexCol) in the phenotype file are used for males. By default, '0'
 #' @param sexCol character. Coloumn name for sex in the phenotype file, e.g Sex. By default, ''
 #' @param isCovariateOffset logical. Whether to estimate fixed effect coeffciets. By default, FALSE.
-#' @param isStoreSigma logical. Whether to store sigma matrix. By default, FALSE. If number of individuals is greater than 10,000, this option may use large memory
+#' @param isStoreSigma logical. Whether to store sigma matrix. By default, TRUE, as in the step 1 script; step 2 needs it. If number of individuals is greater than 10,000, this option may use large memory
 #' @param isShrinkModelOutput logical. remove unnecessary objects for step2 from the model output. By default, FALSE.
 #' @param isExportResiduals logical. export a residual vector. By default, FALSE.
 #' @param varRatioBatchSize integer. Batch size for variance ratio estimation. Higher values use more memory but may be faster. Set to 1 for sequential processing (low memory), or >1 for batch processing. By default, 10.
@@ -119,7 +119,7 @@ fitNULLGLMM_multiV <- function(plinkFile = "",
                                VcellmatFilelist = "",
                                VcellmatSampleFilelist = "",
                                useGRMtoFitNULL = TRUE,
-                               isStoreSigma = FALSE,
+                               isStoreSigma = TRUE,
                                isShrinkModelOutput = FALSE,
                                isExportResiduals = FALSE,
                                varRatioBatchSize = 10,
@@ -418,6 +418,17 @@ fitNULLGLMM_multiV <- function(plinkFile = "",
       }
     }
 
+    # Formulas are built by pasting names, so a name like chr1-100-200 would parse as arithmetic.
+    badNames <- setdiff(c(phenoCol, covarColList), make.names(c(phenoCol, covarColList)))
+    if (length(badNames) > 0) {
+      stop("ERROR! phenoCol and covariate names must be valid R names (letters, digits, '.' or '_'): ", paste(badNames, collapse = ", "), "\n")
+    }
+    # A non-numeric covariate would silently become one dummy column per distinct value.
+    nonNumeric <- Filter(function(v) !(is.numeric(data[, v]) || is.logical(data[, v])), c(phenoCol, setdiff(covarColList, qCovarCol)))
+    if (length(nonNumeric) > 0) {
+      stop("ERROR! non-numeric phenotype or covariates (list categorical ones in qCovarCol): ", paste(nonNumeric, collapse = ", "), "\n")
+    }
+
     if (length(eCovarCol) > 0) {
       cat(eCovarCol, "are environmental covariates\n")
       if (!all(eCovarCol %in% covarColList)) {
@@ -431,6 +442,8 @@ fitNULLGLMM_multiV <- function(plinkFile = "",
       if (!all(sampleCovarCol %in% covarColList)) {
         stop("ERROR! all covariates in sampleCovarCol must be in covarColList\n")
       }
+      # Sample covariates first: after the QR transform a column is sample-level only if all columns before it are.
+      covarColList <- c(intersect(covarColList, sampleCovarCol), setdiff(covarColList, sampleCovarCol))
     }
 
     if (FemaleOnly | MaleOnly) {
@@ -465,42 +478,6 @@ fitNULLGLMM_multiV <- function(plinkFile = "",
 
 
 
-if(FALSE){
-    if (length(covarColList) > 0) {
-      formula <- paste0(phenoCol, "~", paste0(covarColList,
-        collapse = "+"
-      ))
-      hasCovariate <- TRUE
-    } else {
-      formula <- paste0(phenoCol, "~ 1")
-      hasCovariate <- FALSE
-    }
-
-    cat("formula is ", formula, "\n")
-    formula.null <- as.formula(formula)
-    mmat <- model.matrix(formula.null, data, na.action = NULL)
-    mmat <- cbind(mmat, data[, which(colnames(data) == phenoCol), drop = F])
-    colnames(mmat)[ncol(mmat)] <- phenoCol
-
-    if (length(sampleCovarCol) > 0) {
-      cat(sampleCovarCol, "are sample-level covariates\n")
-      # check which sample-level covariates are categorical and record the names after factorizing in the data frame
-      if (length(qCovarCol) > 0) {
-        if (any(sampleCovarCol %in% qCovarCol)) {
-          sampleCovarCol_q <- sampleCovarCol[which(sampleCovarCol %in% qCovarCol)]
-          formula_sq <- paste0("~", paste0(sampleCovarCol_q, collapse = "+"))
-          formula_sq.null <- as.formula(formula_sq)
-          mmat_sq <- model.matrix(formula_sq.null, data, na.action = NULL)
-          sampleCovarCol_q_names <- colnames(mmat_sq)[-1]
-          rm(mmat_sq)
-        } else {
-          sampleCovarCol_q_names <- NULL
-        }
-      } else {
-        sampleCovarCol_q_names <- NULL
-      }
-    }
-} #if(FALSE){
 
   # Pre-compute logical conditions
   hasCovariate <- length(covarColList) > 0
@@ -533,10 +510,9 @@ if(FALSE){
       # Use intersect() for better performance than nested %in%
       sampleCovarCol_q <- intersect(sampleCovarCol, qCovarCol)
       if (length(sampleCovarCol_q) > 0) {
-        # Avoid creating temporary matrix - just get the expanded names
+        # Dummy column names (e.g. grpb), as in the model matrix; term labels (grp) match no column.
         temp_formula <- as.formula(paste0("~", paste(sampleCovarCol_q, collapse = "+")))
-        temp_terms <- terms(temp_formula, data = data)
-        sampleCovarCol_q_names <- attr(temp_terms, "term.labels")
+        sampleCovarCol_q_names <- colnames(model.matrix(temp_formula, data))[-1]
       }
     }
   }
@@ -1340,7 +1316,8 @@ print(start_7 - start_0)
       # }
     }
     # }
-    save(modglmm, file = modelOut)
+    # Only the LOCO variance-ratio step reloads this; the final fastSave writes the model otherwise.
+    if (LOCO) save(modglmm, file = modelOut)
     tau <- modglmm$theta
     alpha0 <- modglmm$coefficients
 
@@ -1686,26 +1663,6 @@ extractVarianceRatio_multiV <- function(obj.glmm.null,
 
 
   ## randomize the marker orders to be tested
-  if (FALSE) {
-    if (useSparseGRMtoFitNULL | useSparseGRMforVarRatio) {
-      sparseSigma <- getSparseSigma(
-        bedFile = bedFile, bimFile = bimFile, famFile = famFile,
-        outputPrefix = varRatioOutFile,
-        sparseGRMFile = sparseGRMFile,
-        sparseGRMSampleIDFile = sparseGRMSampleIDFile,
-        numRandomMarkerforSparseKin = numRandomMarkerforSparseKin,
-        relatednessCutoff = relatednessCutoff,
-        minMAFforGRM = minMAFforGRM,
-        nThreads = nThreads,
-        isDiagofKinSetAsOne = isDiagofKinSetAsOne,
-        obj.glmm.null = obj.glmm.null,
-        W = W, tauVecNew = tauVecNew
-      )
-      if (length(tauVecNew) > 2) {
-        sparseSigma <- sparseSigma + getProdTauKmat(tauVecNew[3:length(tauVecNew)])
-      }
-    }
-  }
 
 
   mMarkers <- gettotalMarker()
@@ -2477,6 +2434,11 @@ glmmkin.ai_PCG_Rcpp_multiV <- function(bedFile, bimFile, famFile, Xorig, isCovar
   Y <- re.coef$Y
   mu <- re.coef$mu
   converged <- ifelse(i < maxiter, TRUE, FALSE)
+  # With an intercept, a Poisson fit has sum(mu) = sum(y); a large gap means the coefficients diverged (quasi-separation).
+  if (family$family == "poisson" && sum(y) > 0 && !isTRUE(abs(log(sum(mu) / sum(y))) <= 0.01)) {
+    warning("Fitted values do not sum to the observed counts, model not converged...", call. = FALSE)
+    converged <- FALSE
+  }
 
   # var_weights = NULL
   # if(!is.null(var_weights)){

@@ -180,7 +180,7 @@ SPAGMMATtest(
 
 \item{annotation_in_groupTest.}{vector of character. annotations of markers to be tested in the set-based tests. using ; to combine multiple annotations in the same test. e.g. c("lof","missense;lof","missense;lof;synonymous")  will test lof variants only, missense+lof variants, and missense+lof+synonymous variants. By default:  c("lof","missense;lof","missense;lof;synonymous")}
 
-\item{weights_for_condition.}{vector of numeric. weights for conditioning markers for gene- or region-based tests. The length equals to the number of conditioning markers, e.g. c(1,2,3). If not specified, the default weights will be generated based on beta(MAF, 1, 25). Use weights.beta to change the parameters for the Beta distribution.}
+\item{weights_for_condition.}{matrix of numeric. weights for conditioning markers for gene- or region-based tests. The nrow equals to the number of conditioning markers and the ncol equals to the number of sets of weights specified in the group file, e.g. c(1,2,3). If not specified, the default weights will be generated based on beta(MAF, 1, 25). Use weights.beta to change the parameters for the Beta distribution.}
 
 \item{IsOutputlogPforSingle}{logical. Whether to output log(Pvalue) for single-variant assoc tests. By default, FALSE. If TRUE, the log(Pvalue) instead of original P values will be output (Not activated)}
 

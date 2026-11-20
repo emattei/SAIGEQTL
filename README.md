@@ -40,8 +40,7 @@ qtl/
 ├── R/               # R source code
 ├── src/             # C++ source code
 ├── man/             # Documentation
-├── extdata/         # Example data and scripts
-└── binaries/        # Pre-built packages
+└── extdata/         # Example data and scripts
 ```
 
 ## Documentation
