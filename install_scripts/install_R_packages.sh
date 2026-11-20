@@ -132,7 +132,7 @@ core_pkgs <- c(
     "remotes", "Rcpp", "RcppArmadillo", "RcppParallel",
     "RcppEigen", "RcppNumerical", "Matrix", "data.table",
     "BH", "RSQLite", "dplyr", "dbplyr", "furrr", "optparse",
-    "SKAT", "nlme", "MASS", "RhpcBLASctl"
+    "SKAT", "MASS", "RhpcBLASctl"
 )
 
 for (pkg in core_pkgs) {
