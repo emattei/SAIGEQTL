@@ -104,6 +104,6 @@ This gives the ACAT p-value over the window, which is the same as `SAIGEQTL::get
 | `--tol=0.02` (default) without `--tauFloor` | Donor variances below 0.02 are set to 0 |
 | `chr1`-style codes in the step 1 `--plinkFile` | Step 1 fails: `chromosome column in plink bim file is no numeric` |
 | Step 2 `--chrom` differs from the `.bim` code | Step 2 stops with an error and writes only the header |
-| Sparse peak whose counts all fall in some levels of a 0/1 donor covariate, such as batch | Step 1 reports `SUCCESS`, but the fit diverges: in a 12-count simulated peak the fitted values summed to 1.6e17. Step 2 then gives p = 0 for every variant. Check that the fitted values sum to the observed counts. |
+| Sparse peak whose counts all fall in some levels of a 0/1 donor covariate, such as batch | The full model diverges, is flagged as not converged and is refitted with the covariates as offset. Versions before this change report `SUCCESS` for the diverged fit (in a 12-count simulated peak the fitted values summed to 1.6e17), and step 2 then gives p = 0 for every variant; with those versions, check that the fitted values sum to the observed counts. |
 
 In every step 1 failure above, the script exits with status 1 (status 0 in versions before this change).
