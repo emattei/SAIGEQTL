@@ -724,6 +724,11 @@ if(abs(StdStat) > m_SPA_Cutoff && m_traitType != "quantitative"){
    t_pval = t_SPApval;
      //t_isSPAConverge = true;
    //}
+   // Match SE to the SPA p-value, as in the conditional and multi-marker paths; keep the score SE if p underflows.
+   if (t_pval > 0) {
+     boost::math::normal ns;
+     t_seBeta = fabs(t_Beta) / fabs(boost::math::quantile(ns, t_pval/2));
+   }
 }
 
 
