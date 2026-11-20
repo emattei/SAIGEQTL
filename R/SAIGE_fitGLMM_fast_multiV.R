@@ -46,7 +46,7 @@
 #' @param MaleCode character. Values in the column for sex (sexCol) in the phenotype file are used for males. By default, '0'
 #' @param sexCol character. Coloumn name for sex in the phenotype file, e.g Sex. By default, ''
 #' @param isCovariateOffset logical. Whether to estimate fixed effect coeffciets. By default, FALSE.
-#' @param isStoreSigma logical. Whether to store sigma matrix. By default, FALSE. If number of individuals is greater than 10,000, this option may use large memory
+#' @param isStoreSigma logical. Whether to store sigma matrix. By default, TRUE, as in the step 1 script; step 2 needs it. If number of individuals is greater than 10,000, this option may use large memory
 #' @param isShrinkModelOutput logical. remove unnecessary objects for step2 from the model output. By default, FALSE.
 #' @param isExportResiduals logical. export a residual vector. By default, FALSE.
 #' @param varRatioBatchSize integer. Batch size for variance ratio estimation. Higher values use more memory but may be faster. Set to 1 for sequential processing (low memory), or >1 for batch processing. By default, 10.
@@ -119,7 +119,7 @@ fitNULLGLMM_multiV <- function(plinkFile = "",
                                VcellmatFilelist = "",
                                VcellmatSampleFilelist = "",
                                useGRMtoFitNULL = TRUE,
-                               isStoreSigma = FALSE,
+                               isStoreSigma = TRUE,
                                isShrinkModelOutput = FALSE,
                                isExportResiduals = FALSE,
                                varRatioBatchSize = 10,
